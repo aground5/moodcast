@@ -7,7 +7,7 @@ import { useState, useRef } from 'react';
 
 export function MoodSelector() {
     const t = useTranslations('vote.mood');
-    const { gender, setMood, setStep, coords } = useVoteStore();
+    const { gender, setMood, setStep, setRegion, coords } = useVoteStore();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // State for Charge Logic
@@ -29,7 +29,10 @@ export function MoodSelector() {
         setMood(mood);
 
         try {
-            await submitVote(gender, mood, coords || undefined);
+            const result = await submitVote(gender, mood, coords || undefined);
+            if (result.region) {
+                setRegion(result.region);
+            }
             setStep('result');
         } catch (e) {
             console.error(e);

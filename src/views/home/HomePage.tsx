@@ -11,35 +11,60 @@ import { useEffect } from 'react';
 interface HomePageProps {
     initialStep: 'gender' | 'result';
     savedGender?: 'male' | 'female';
+    initialVote?: any; // strict type would be better but keeping it simple for now
+    ipRegion?: string;
 }
 
-export default function HomePage({ initialStep, savedGender }: HomePageProps) {
-    const { step, setStep, setGender, setCoords } = useVoteStore();
+export default function HomePage({ initialStep, savedGender, initialVote, ipRegion }: HomePageProps) {
+    const { step, setStep, setGender, setMood, setRegion, setCoords } = useVoteStore();
 
     useEffect(() => {
-        if (initialStep === 'result') {
-            setStep('result');
-        } else if (savedGender) {
-            setGender(savedGender);
+        // 1. Prioritize Server Data (Vote Record)
+        if (initialVote) {
+            setGender(initialVote.gender);
+            setMood(initialVote.mood);
+            if (initialVote.region_lv2) {
+                setRegion(initialVote.region_lv2);
+            }
+        }
+        // 2. If no vote record, use IP Region as initial guess
+        else {
+            if (savedGender) setGender(savedGender);
+            if (ipRegion) setRegion(ipRegion);
         }
 
-        // Location Tracking: Attempt to get high-accuracy location
+        if (initialStep === 'result') {
+            setStep('result');
+        }
+
+        // 3. Refine with GPS (Client-Side)
         if ('geolocation' in navigator) {
             navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    setCoords({
-                        lat: position.coords.latitude,
-                        lng: position.coords.longitude
-                    });
+                async (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+
+                    setCoords({ lat, lng });
+
+                    // Reverse Geocode for better name
+                    // Only update if we haven't voted yet (voting handles its own region logic)
+                    // OR if we want to show current location even if voted elsewhere? 
+                    // Let's stick to "Current Location" logic for the Landing Page.
+                    if (!initialVote) {
+                        const { reverseGeocode } = await import('@/shared/lib/location/geocoding');
+                        const refinedRegion = await reverseGeocode(lat, lng);
+                        if (refinedRegion) {
+                            setRegion(refinedRegion);
+                        }
+                    }
                 },
                 (error) => {
-                    // Silently fail, server will fall back to IP
                     console.log('Location access denied/unavailable:', error);
                 },
                 { timeout: 5000, maximumAge: 60000 }
             );
         }
-    }, [initialStep, savedGender, setStep, setGender, setCoords]);
+    }, [initialStep, savedGender, initialVote, ipRegion, setStep, setGender, setMood, setRegion, setCoords]);
 
     const isReturningUser = !!savedGender;
 

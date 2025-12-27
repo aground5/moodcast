@@ -6,6 +6,7 @@ import { cookies, headers } from 'next/headers';
 type VoteResult = {
     success: boolean;
     error?: string;
+    region?: string;
 };
 
 export async function submitVoteAction(
@@ -42,15 +43,8 @@ export async function submitVoteAction(
                 const address = data.address;
 
                 // Map OSM address fields to Korean administrative divisions
-                // Seoul -> city
-                // Mapo-gu -> borough, suburb, district?
-                // Fallbacks are tricky with OSM structure variability
-
                 region1 = address.city || address.province || address.state || 'Unknown';
                 region2 = address.borough || address.suburb || address.district || address.neighbourhood || 'Unknown';
-
-                // Simple Mapping for Seoul/Korea common cases if needed (OSM returns English often in params?)
-                // Ideally we requested accept-language
             }
         } catch (e) {
             console.error('Reverse Geocoding Failed:', e);
@@ -58,15 +52,12 @@ export async function submitVoteAction(
     }
 
     // Strategy B: Header Fallback (if strictly unknown)
-    // Check headers if regions are still unknown
-    if (region1 === 'Unknown' || region1 === 'South Korea') { // OSM often gives Country as state for some reason?
+    if (region1 === 'Unknown' || region1 === 'South Korea') {
         const headerStore = await headers();
         const city = headerStore.get('x-vercel-ip-city') || headerStore.get('cf-ipcity');
-        const country = headerStore.get('x-vercel-ip-country') || headerStore.get('cf-ipcountry');
 
         if (city) {
             region1 = city;
-            // If we have city but no drilled down info, set region2 to city too or leave unknown
             if (region2 === 'Unknown') region2 = city;
         }
     }
@@ -90,21 +81,24 @@ export async function submitVoteAction(
     }
 
     // 3. Set Cookies (Server-Side Persistence)
-    // Gender Cookie (1 Year)
+    // Gender
     cookieStore.set('moodcast_gender', gender, {
         path: '/',
         maxAge: 60 * 60 * 24 * 365,
         sameSite: 'lax',
-        httpOnly: false, // Accessible to client if needed
+        httpOnly: false,
     });
 
-    // Last Voted Timestamp (1 Year) - For Optimization
+    // Last Voted Timestamp
     cookieStore.set('moodcast_last_voted_at', new Date().toISOString(), {
         path: '/',
         maxAge: 60 * 60 * 24 * 365,
         sameSite: 'lax',
-        httpOnly: false, // Accessible to client logic
+        httpOnly: false,
     });
 
-    return { success: true };
+    return {
+        success: true,
+        region: region2 !== 'Unknown' ? region2 : region1
+    };
 }

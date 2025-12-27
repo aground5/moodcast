@@ -9,31 +9,26 @@ import { useMemo, useEffect, useState } from 'react';
 import { getDashboardStats, DashboardStats } from '../actions/getDashboardStats';
 
 export function Dashboard() {
-    const { gender, mood, coords } = useVoteStore();
+    const { gender, mood, region } = useVoteStore();
     const [stats, setStats] = useState<DashboardStats | null>(null);
 
     // Fetch Stats on Mount
     useEffect(() => {
         const fetchStats = async () => {
-            // Use coords.region_lv2 (e.g., '마포구') if available
-            // Note: coords are optional in store, need to check structure
-            // In submitVoteAction, we stored region_lv2 in DB. 
-            // Locally we might not have it in `coords` unless we update the store after reverse geocoding on client,
-            // OR we assume the server action handles it.
-            // Since `coords` in store is just { lat, lng }, we don't have the region name locally yet unless we geocoded it.
-            // However, the previous `analyze.ts` file relied on a `region` string.
-            // For now, let's fetch GLOBAL stats or pass null if we don't have the region name handy.
-            // IMPROVEMENT: Ideally we should geocode locally or get the region back from the vote submission.
-            // But let's assume for this MVP we fetch "전국" (National) stats if we don't carry the region name state.
-            // wait, submitVoteAction returns nothing currently.
-            // Let's rely on global stats or maybe we can quickly reverse geocode here again? 
-            // Or just fetch global stats to start.
+            // Use region from store if available (hydrated from DB)
+            // If user just voted, they might not have region string in store unless we set it.
+            // But wait, submitVoteAction returns nothing. 
+            // If they just voted, hasVoted=true -> page reload -> hydration -> region set.
+            // If they are in the SPA flow (just clicked vote), we don't reload page.
+            // So store.region might still be null IF we didn't set it upon voting.
 
-            const data = await getDashboardStats(undefined); // Fetching Global/National stats for now to ensure data visibility
+            // To be safe: pass `region || undefined`. 
+            // If null, it will fetch national stats.
+            const data = await getDashboardStats(region || undefined);
             setStats(data);
         };
         fetchStats();
-    }, []);
+    }, [region]);
 
     const regionName = stats?.region || "전국";
     const happinessScore = stats?.score || 0;

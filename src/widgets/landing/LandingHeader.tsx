@@ -1,5 +1,6 @@
 import { useTranslations } from 'next-intl';
 import { FadeIn } from '@/shared/ui/MotionWrapper';
+import { useVoteStore } from '@/features/vote/model/useVoteStore';
 
 interface LandingHeaderProps {
     isReturningUser?: boolean;
@@ -7,15 +8,16 @@ interface LandingHeaderProps {
 
 export function LandingHeader({ isReturningUser = false }: LandingHeaderProps) {
     const t = useTranslations('home.hero');
+    const { region } = useVoteStore();
 
-    // Mock Region (In real app, fetch from IP)
-    const region = "마포구";
+    // Default to '...' or something indicative if region is strictly null (though IP should catch it)
+    const displayRegion = region || "서울"; // Fallback to major city if all else fails
 
     return (
         <div className="flex flex-col items-center justify-center gap-8 text-center px-4 mb-8">
             <FadeIn>
                 <h1 className="text-4xl md:text-5xl font-bold leading-tight text-gray-900">
-                    지금 <span className="text-blue-500">{region}</span>의<br />
+                    지금 <span className="text-blue-500">{displayRegion}</span>의<br />
                     기류에 동기화하세요.
                 </h1>
             </FadeIn>

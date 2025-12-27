@@ -12,4 +12,6 @@ export async function submitVote(
         console.error('Vote submission error:', result.error);
         throw new Error(result.error || 'Failed to submit vote');
     }
+
+    return result;
 }
