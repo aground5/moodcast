@@ -110,7 +110,7 @@ export function MoodSelector() {
                         }
                         transition={{ duration: 0.2 }}
                     >
-                        <Card className={`relative overflow-hidden cursor-pointer flex items-center justify-between px-8 py-6 z-10 transition-colors duration-500 border-2 ${isCharged && holdingMood === 'good' ? 'border-blue-500 shadow-lg shadow-blue-200' : 'border-blue-200 bg-gradient-to-r from-blue-50 to-blue-100'}`}>
+                        <Card className={`relative overflow-hidden cursor-pointer flex items-center justify-between px-6 py-5 md:px-8 md:py-6 z-10 transition-colors duration-500 border-2 ${isCharged && holdingMood === 'good' ? 'border-blue-500 shadow-lg shadow-blue-200' : 'border-blue-200 bg-gradient-to-r from-blue-50 to-blue-100'}`}>
                             {/* Filling Background Effect */}
                             {holdingMood === 'good' && !isCharged && (
                                 <motion.div
@@ -152,7 +152,7 @@ export function MoodSelector() {
                         }
                         transition={{ duration: 0.2 }}
                     >
-                        <Card className={`relative overflow-hidden cursor-pointer flex items-center justify-between px-8 py-6 z-10 transition-colors duration-500 border-2 ${isCharged && holdingMood === 'bad' ? 'border-gray-500 shadow-lg shadow-gray-200' : 'border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100'}`}>
+                        <Card className={`relative overflow-hidden cursor-pointer flex items-center justify-between px-6 py-5 md:px-8 md:py-6 z-10 transition-colors duration-500 border-2 ${isCharged && holdingMood === 'bad' ? 'border-gray-500 shadow-lg shadow-gray-200' : 'border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100'}`}>
                             {/* Filling Background Effect */}
                             {holdingMood === 'bad' && !isCharged && (
                                 <motion.div
