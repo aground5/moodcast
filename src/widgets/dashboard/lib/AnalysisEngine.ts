@@ -5,91 +5,109 @@ type Gender = 'male' | 'female';
 type Mood = 'good' | 'bad';
 
 /**
- * The "Meaning-Making" Engine.
- * Analyzes the user's state against the region's stats to determine the most narrative-relevant scenario.
+ * The "Relational Meaning" Engine.
+ * Analyzes the user's state relative to Other Gender, Peer Group, and the World.
  */
 export function analyzeScenario(gender: Gender, mood: Mood, stats: DashboardStats): string {
     const { score: totalScore, male, female, region } = stats;
 
-    let scenario: ScenarioType = 'all_good'; // Fallback
+    const myPeerScore = gender === 'male' ? male.score : female.score;
+    const otherPeerScore = gender === 'male' ? female.score : male.score;
 
-    const maleScore = male.score;
-    const femaleScore = female.score;
-    const gap = Math.abs(maleScore - femaleScore);
+    let scenario: ScenarioType = 'world_utopia'; // Default fallback (optimistic)
 
-    // --- 1. Outlier Detection (Me vs The World) ---
-    // Priority: Being alone in your mood is a strong narrative.
+    // --- 0. Meta Nudge (First Priority Check for Randomness) ---
+    // 15% chance if mood is bad to verify if it's just "hangry"
+    if (mood === 'bad' && Math.random() < 0.15) {
+        scenario = 'bad_nudge';
+    } else {
+        // --- 1. Interaction (Me vs Other Gender) ---
+        // "The Eye Contact Game" - High priority for social dynamics
 
-    // Alone Good: I am Good, World/Peers are Bad
-    if (mood === 'good' && totalScore < 40) {
-        scenario = 'alone_good';
+        // Caution: I'm Good, They are exploding (<30)
+        if (mood === 'good' && otherPeerScore < 30) {
+            scenario = 'watch_out_other';
+        }
+        // Connection: I'm Bad, They are struggling too (<30)
+        else if (mood === 'bad' && otherPeerScore < 30) {
+            scenario = 'cheer_up_other';
+        }
+        // Opportunity: I'm Good, They are happy (>70)
+        else if (mood === 'good' && otherPeerScore > 70) {
+            scenario = 'chance_other';
+        }
+        // Jealousy: I'm Bad, They are partying (>70)
+        else if (mood === 'bad' && otherPeerScore > 70) {
+            scenario = 'envy_other';
+        }
+
+        // --- 2. World Concept (Extreme Isolation or Synergy) ---
+        // Disaster: Total < 20 (Everyone dying)
+        else if (mood === 'bad' && totalScore < 20) {
+            scenario = 'world_disaster';
+        }
+        // Utopia: Total > 80 (Everyone flying)
+        else if (mood === 'good' && totalScore > 80) {
+            scenario = 'world_utopia';
+        }
+        // Outliers
+        else if (mood === 'good' && totalScore < 40) {
+            scenario = 'world_outlier_good';
+        }
+        else if (mood === 'bad' && totalScore > 60) {
+            scenario = 'world_outlier_bad';
+        }
+
+        // --- 3. Peer Dynamics (Me vs My Group) ---
+        // Black Sheep: I'm Bad, My group Good (>70)
+        else if (mood === 'bad' && myPeerScore > 70) {
+            scenario = 'peer_black_sheep';
+        }
+        // Solidarity: I'm Bad, My group Bad (<30)
+        else if (mood === 'bad' && myPeerScore < 30) {
+            scenario = 'peer_solidarity';
+        }
+        // Captain: I'm Good, My group Bad (<30)
+        else if (mood === 'good' && myPeerScore < 30) {
+            scenario = 'peer_captain';
+        }
+        // Harmony: I'm Good, My group Good (>70)
+        else if (mood === 'good' && myPeerScore > 70) {
+            scenario = 'peer_harmony';
+        }
+
+        // --- 4. Fallbacks (If no extreme conditions met) ---
+        // Return to mid-range logic or generic relational
+        else {
+            // If nothing matches, default to world outlier logic with softer thresholds
+            if (mood === 'good') scenario = 'world_outlier_good';
+            else scenario = 'world_outlier_bad';
+        }
     }
-    // Alone Bad: I am Bad, World is Good
-    else if (mood === 'bad' && totalScore > 60) {
-        scenario = 'alone_bad';
+
+    const messages: readonly string[] = ANALYSIS_MENT_DB[scenario];
+    // Safety check in case DB is missing key or empty
+    if (!messages || messages.length === 0) {
+        return "데이터 분석 중입니다...";
     }
 
-    // --- 2. Consensus Detection (Extreme Shared Mood) ---
-    // All Bad: Everyone is miserable (Score < 30) OR (I am Bad + Score < 40)
-    else if (totalScore < 30 || (mood === 'bad' && totalScore < 40)) {
-        scenario = 'all_bad';
-    }
-    // All Good: Everyone is happy (Score > 70) OR (I am Good + Score > 60)
-    else if (totalScore > 70 || (mood === 'good' && totalScore > 60)) {
-        scenario = 'all_good';
-    }
-
-    // --- 3. Gender Contrast (Men vs Women) ---
-    // Significant gap (>20%) implies a gender divide story.
-    else if (gap > 20) {
-        scenario = 'gender_contrast';
-    }
-
-    // --- 4. Fallback based on Mood ---
-    else {
-        if (mood === 'good') scenario = 'all_good';
-        else scenario = 'all_bad';
-    }
-
-    // --- Select Message ---
-    // 10% chance to inject a "Nudge" (Meta-commentary) if not an extreme outlier
-    if (Math.random() < 0.1 && scenario !== 'alone_good' && scenario !== 'alone_bad') {
-        scenario = 'nudge';
-    }
-
-    const messages = ANALYSIS_MENT_DB[scenario];
     const randomIndex = Math.floor(Math.random() * messages.length);
-    // Explicitly type as string because ANALYSIS_MENT_DB is 'as const' and infers literal types
+    // Explicitly type as string to match return type
     let message: string = messages[randomIndex];
 
     // --- Interpolation ---
-    // Replace {region} placeholder
-    // Replace Gender-specific context if needed (e.g. "내가 여자라면")
-    // Note: The provided texts have some hardcoded gender assumptions like "(내가 여자라면)".
-    // We should clean that up or handle it.
-    // Ideally, the DB shouldn't have conditional text inside strings, but for now we'll do simple cleaning.
+    const isMale = gender === 'male';
+    const myGenderKR = isMale ? '남자' : '여자';
+    const otherGenderKR = isMale ? '여자' : '남자';
+    const myScoreInt = Math.round(isMale ? male.score : female.score);
+    const otherScoreInt = Math.round(isMale ? female.score : male.score);
 
-    message = message.replace('{region}', region);
-
-    // Handle the specific gender conditional strings in 'gender_contrast'
-    // "(내가 여자라면)" messages should only be shown to females.
-    // "(내가 남자라면)" messages should only be shown to males.
-    // If we picked a message that doesn't match our gender, pick again or clean it.
-    // Actually, let's filter the array BEFORE picking if we are in gender_contrast.
-
-    if (scenario === 'gender_contrast') {
-        // Refetch to specific filtering logic
-        const validMessages = messages.filter(msg => {
-            if (gender === 'female' && msg.includes('(내가 남자라면)')) return false;
-            if (gender === 'male' && msg.includes('(내가 여자라면)')) return false;
-            return true;
-        });
-        const validIndex = Math.floor(Math.random() * validMessages.length);
-        message = validMessages[validIndex];
-
-        // Clean the prefix tags
-        message = message.replace('(내가 여자라면)', '').replace('(내가 남자라면)', '').trim();
-    }
+    message = message
+        .replace(/{region}/g, region)
+        .replace(/{gender}/g, myGenderKR)
+        .replace(/{otherGender}/g, otherGenderKR)
+        .replace(/{myScore}/g, myScoreInt.toString())
+        .replace(/{otherScore}/g, otherScoreInt.toString());
 
     return message;
 }

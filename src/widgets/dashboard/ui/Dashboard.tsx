@@ -79,7 +79,7 @@ export function Dashboard() {
                         <div className="w-full h-px bg-gray-100 my-1" />
 
                         <p className="text-lg text-gray-700 leading-relaxed font-medium break-keep animate-fade-in-up">
-                            "{analysis}"
+                            {analysis}
                         </p>
                     </div>
 
