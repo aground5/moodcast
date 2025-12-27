@@ -1,0 +1,26 @@
+{
+    "app": {
+        "title": "Moodcast",
+        "description": "지역 기반 감정 동기화 플랫폼"
+    },
+    "home": {
+        "hero": {
+            "welcome": "지금 이 순간, 당신의 기분을\n지역 사람들과 동기화하세요.",
+            "start": "시작하기",
+            "nudge": "오늘 하루는 어떠셨나요?",
+            "nudge_returning": "다시 오셨군요! 오늘 기분은 좀 어떠신가요?"
+        }
+    },
+    "vote": {
+        "gender": {
+            "question": "성별을 선택해주세요",
+            "male": "남성",
+            "female": "여성"
+        },
+        "mood": {
+            "question": "지금 기분은 어떠신가요?",
+            "good": "좋음",
+            "bad": "나쁨"
+        }
+    }
+}

@@ -1,26 +1,71 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+    --font-sans: var(--font-noto-sans-kr);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+:root {
+    --background: #ffffff;
+    --foreground: #171717;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+    :root {
+        --background: #0a0a0a;
+        --foreground: #ededed;
+    }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans), sans-serif;
+}
+
+/* Leaflet Overrides */
+.leaflet-container {
+    background: #111 !important;
+    width: 100%;
+    height: 100%;
+}
+
+/* Mood Blur Effect */
+.mood-fog {
+    filter: blur(20px);
+    opacity: 0.6;
+    transition: all 1s ease-in-out;
+}
+
+/* Typewriter Cursor */
+.typewriter-cursor::after {
+    content: '|';
+    animation: blink 1s step-start infinite;
+}
+
+@keyframes blink {
+    50% {
+        opacity: 0;
+    }
+}
+
+/* Live Pulse */
+@keyframes pulse-live {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(1.5);
+        opacity: 0.5;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.animate-pulse-live {
+    animation: pulse-live 2s infinite;
 }
