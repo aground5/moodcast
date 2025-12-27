@@ -80,6 +80,19 @@ pnpm run dev
 -   `app/[locale]` 기반 라우팅.
 -   `src/proxy.ts` 미들웨어를 통해 로케일 및 인증 처리.
 
+### 5.3 복합 로직 기반 텍스트 생성 (Contextual Analysis Engine)
+단순한 키-값 매핑(`next-intl` JSON)으로 처리하기 어려운 복잡한 조건부 텍스트는 별도의 엔진을 통해 관리합니다.
+
+-   **배경**: 사용자의 상태(성별, 기분)와 지역 통계(타인 성별 분포, 기분 분포, 격차 등)를 조합하여 60개 이상의 세밀한 시나리오를 생성해야 함.
+-   **구현**:
+    -   `ko.json`에서 로직을 분리.
+    -   `src/i18n/contents/analysis_ko.ts`: 순수 컨텐츠 DB (Typescript `as const` 객체).
+    -   `src/widgets/dashboard/lib/AnalysisEngine.ts`: 시나리오 감지 및 메시지 선택 로직.
+-   **장점**:
+    -   로직과 컨텐츠의 명확한 분리.
+    -   복잡한 조건문(outliers, consensus detection)을 Typescript로 타입 안전하게 관리.
+    -   JSON 파일 비대화 방지.
+
 ## 6. 개발 표준 (Development Standards)
 
 ### 6.1 Next.js 권장 사항

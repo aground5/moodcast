@@ -16,9 +16,11 @@ export function LandingHeader({ isReturningUser = false }: LandingHeaderProps) {
     return (
         <div className="flex flex-col items-center justify-center gap-8 text-center px-4 mb-8">
             <FadeIn>
-                <h1 className="text-4xl md:text-5xl font-bold leading-tight text-gray-900">
-                    지금 <span className="text-blue-500">{displayRegion}</span>의<br />
-                    기류에 동기화하세요.
+                <h1 className="text-4xl md:text-5xl font-bold leading-tight text-gray-900 whitespace-pre-line">
+                    {t.rich('title', {
+                        region: displayRegion,
+                        highlight: (chunks) => <span className="text-blue-500">{chunks}</span>
+                    })}
                 </h1>
             </FadeIn>
 

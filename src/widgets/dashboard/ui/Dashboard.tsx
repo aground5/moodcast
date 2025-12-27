@@ -1,43 +1,51 @@
 "use client";
 
 import { useVoteStore } from '@/features/vote/model/useVoteStore';
-import { analyzeMood } from '../lib/analyze';
 import { MoodMap } from './MoodMap';
 import { Card } from '@/shared/ui/Card';
 import { FadeIn, ScaleIn } from '@/shared/ui/MotionWrapper';
 import { useMemo, useEffect, useState } from 'react';
 import { getDashboardStats, DashboardStats } from '../actions/getDashboardStats';
+import { useTranslations } from 'next-intl';
+import { useAnalysis } from '../lib/useAnalysis';
+import { createClient } from '@/shared/lib/supabase/client';
 
 export function Dashboard() {
+    const t = useTranslations('dashboard');
     const { gender, mood, region } = useVoteStore();
     const [stats, setStats] = useState<DashboardStats | null>(null);
 
-    // Fetch Stats on Mount
+    // Fetch Stats on Mount & Subscribe to Realtime
     useEffect(() => {
         const fetchStats = async () => {
-            // Use region from store if available (hydrated from DB)
-            // If user just voted, they might not have region string in store unless we set it.
-            // But wait, submitVoteAction returns nothing. 
-            // If they just voted, hasVoted=true -> page reload -> hydration -> region set.
-            // If they are in the SPA flow (just clicked vote), we don't reload page.
-            // So store.region might still be null IF we didn't set it upon voting.
-
-            // To be safe: pass `region || undefined`. 
-            // If null, it will fetch national stats.
             const data = await getDashboardStats(region || undefined);
             setStats(data);
         };
         fetchStats();
+
+        // Realtime Subscription
+        const supabase = createClient();
+        const channelName = region ? `mood-updates:${region}` : `mood-updates:National`;
+
+        const channel = supabase.channel(channelName)
+            .on('broadcast', { event: 'stats-update' }, (payload) => {
+                console.log('Realtime Update:', payload);
+                if (payload.payload) {
+                    setStats(payload.payload as DashboardStats);
+                }
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
     }, [region]);
 
     const regionName = stats?.region || "전국";
     const happinessScore = stats?.score || 0;
     const totalVotes = stats?.total || 0;
 
-    const analysis = useMemo(() => {
-        if (!gender || !mood) return "데이터를 분석할 수 없습니다.";
-        return analyzeMood(gender, mood, regionName);
-    }, [gender, mood, regionName]);
+    const analysis = useAnalysis(gender, mood, stats);
 
     const moodColor = mood === 'good' ? 'text-blue-500' : 'text-gray-500';
     const scoreColor = happinessScore >= 50 ? 'text-blue-600' : 'text-gray-600';
@@ -55,12 +63,16 @@ export function Dashboard() {
 
                         <div className="space-y-1">
                             <h2 className="text-2xl font-bold text-gray-800">
-                                {regionName}의 <span className={scoreColor}>기분 날씨</span>
+                                {t.rich('title', {
+                                    region: regionName,
+                                    span: (chunks) => <span className={scoreColor}>{chunks}</span>,
+                                    highlight: (chunks) => <span className={scoreColor}>{chunks}</span>
+                                })}
                             </h2>
                             <div className="flex items-center justify-center gap-2 text-sm text-gray-500 font-medium">
-                                <span>참여자 {totalVotes.toLocaleString()}명</span>
+                                <span>{t('participants', { count: totalVotes.toLocaleString() })}</span>
                                 <span>•</span>
-                                <span>행복지수 <span className={`text-lg font-bold ${scoreColor}`}>{happinessScore}%</span></span>
+                                <span>{t('happiness_index')} <span className={`text-lg font-bold ${scoreColor}`}>{happinessScore}%</span></span>
                             </div>
                         </div>
 
@@ -83,7 +95,7 @@ export function Dashboard() {
 
             <FadeIn delay={0.4}>
                 <p className="text-center text-xs text-gray-400">
-                    *집계 데이터는 매일 자정에 초기화됩니다.
+                    {t('reset_notice')}
                 </p>
             </FadeIn>
         </div>

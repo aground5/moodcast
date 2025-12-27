@@ -5,7 +5,7 @@
     },
     "home": {
         "hero": {
-            "welcome": "지금 이 순간, 당신의 기분을\n지역 사람들과 동기화하세요.",
+            "title": "지금 <highlight>{region}</highlight>의\n기류에 동기화하세요.",
             "start": "시작하기",
             "nudge": "오늘 하루는 어떠셨나요?",
             "nudge_returning": "다시 오셨군요! 오늘 기분은 좀 어떠신가요?"
@@ -20,7 +20,19 @@
         "mood": {
             "question": "지금 기분은 어떠신가요?",
             "good": "좋음",
-            "bad": "나쁨"
+            "bad": "나쁨",
+            "instruction_hold": "계속 누르고 있으세요...",
+            "instruction_release": "이제 손을 떼세요!",
+            "instruction_default": "버튼을 꾹 눌러 감정을 담아보세요"
         }
+    },
+    "dashboard": {
+        "title": "{region}의 <highlight>기분 날씨</highlight>",
+        "participants": "참여자 {count}명",
+        "happiness_index": "행복지수",
+        "reset_notice": "*집계 데이터는 매일 자정에 초기화됩니다."
+    },
+    "analysis": {
+        "error": "데이터를 분석할 수 없습니다."
     }
 }

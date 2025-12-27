@@ -97,6 +97,18 @@ export async function submitVoteAction(
         httpOnly: false,
     });
 
+    // 4. Broadcast Realtime Updates (Optimization: Don't await if we want faster response, but better to ensure it's sent)
+    // We import dynamically or standard. Let's assume standard import.
+    try {
+        const { broadcastVote } = await import('../api/broadcastVote');
+        // Fire and forget-ish, or await. Awaiting adds latency to the user's "Vote" action.
+        // But Server Actions must succeed. Let's await to be safe for now, can optimize later.
+        await broadcastVote(region2 !== 'Unknown' ? region2 : undefined);
+    } catch (e) {
+        console.error("Broadcast failed:", e);
+        // Don't fail the vote just because broadcast failed
+    }
+
     return {
         success: true,
         region: region2 !== 'Unknown' ? region2 : region1
