@@ -28,11 +28,16 @@
     },
     "dashboard": {
         "title": "{region}의 <highlight>기분 날씨</highlight>",
-        "participants": "참여자 {count}명",
+        "participants": "참여자",
         "happiness_index": "행복지수",
-        "reset_notice": "*집계 데이터는 매일 자정에 초기화됩니다."
+        "reset_notice": "자정을 기준으로 데이터가 초기화됩니다.",
+        "my_mood_prefix": "오늘 당신은 ",
+        "my_mood_good": "좋음",
+        "my_mood_bad": "나쁨",
+        "my_mood_suffix": "을 선택했네요.",
+        "region_report_title": "{region} 리포트"
     },
-    "analysis": {
+    "error": {
         "error": "데이터를 분석할 수 없습니다."
     }
 }

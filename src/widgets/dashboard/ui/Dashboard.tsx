@@ -1,7 +1,6 @@
 "use client";
 
 import { useVoteStore } from '@/features/vote/model/useVoteStore';
-import { MoodMap } from './MoodMap';
 import { Card } from '@/shared/ui/Card';
 import { FadeIn, ScaleIn } from '@/shared/ui/MotionWrapper';
 import { useMemo, useEffect, useState } from 'react';
@@ -49,51 +48,74 @@ export function Dashboard() {
 
     const moodColor = mood === 'good' ? 'text-blue-500' : 'text-gray-500';
     const scoreColor = happinessScore >= 50 ? 'text-blue-600' : 'text-gray-600';
+    const moodLabel = mood === 'good' ? t('my_mood_good') : t('my_mood_bad');
+    const moodIcon = mood === 'good' ? '☀️' : '☁️';
 
     return (
-        <div className="w-full max-w-md flex flex-col gap-6 p-4">
-            <FadeIn>
-                <Card className="bg-white/80 backdrop-blur-md border-white/50 shadow-xl relative overflow-hidden">
-                    <div className="flex flex-col gap-4 text-center z-10 relative">
-                        <ScaleIn>
-                            <div className="text-6xl mb-2 filter drop-shadow-md">
-                                {mood === 'good' ? '☀️' : '☁️'}
-                            </div>
-                        </ScaleIn>
+        <div className="w-full max-w-sm flex flex-col gap-6 p-4 items-center">
 
-                        <div className="space-y-1">
-                            <h2 className="text-2xl font-bold text-gray-800">
-                                {t.rich('title', {
-                                    region: regionName,
-                                    span: (chunks) => <span className={scoreColor}>{chunks}</span>,
-                                    highlight: (chunks) => <span className={scoreColor}>{chunks}</span>
-                                })}
-                            </h2>
-                            <div className="flex items-center justify-center gap-2 text-sm text-gray-500 font-medium">
-                                <span>{t('participants', { count: totalVotes.toLocaleString() })}</span>
-                                <span>•</span>
-                                <span>{t('happiness_index')} <span className={`text-lg font-bold ${scoreColor}`}>{happinessScore}%</span></span>
-                            </div>
+            {/* Section 1: My Mood (Input Confirmation) */}
+            <FadeIn>
+                <div className="flex flex-col items-center gap-2">
+                    <ScaleIn>
+                        <div className="text-6xl filter drop-shadow-md animate-float-slow">
+                            {moodIcon}
+                        </div>
+                    </ScaleIn>
+                    <p className="text-gray-600 font-medium text-lg">
+                        {t('my_mood_prefix')}
+                        <span className={`font-bold ${mood === 'good' ? 'text-blue-500' : 'text-gray-500'}`}>
+                            {moodLabel}
+                        </span>
+                        {t('my_mood_suffix')}
+                    </p>
+                </div>
+            </FadeIn>
+
+            {/* Section 2: The Bridge (Relational Message) */}
+            <FadeIn delay={0.2} className="w-full">
+                <div className="relative py-4 text-center">
+                    <span className="absolute top-0 left-2 text-4xl text-gray-200 font-serif">“</span>
+                    <p className="text-xl md:text-2xl text-gray-800 font-bold leading-relaxed break-keep px-4 font-serif">
+                        {analysis}
+                    </p>
+                    <span className="absolute bottom-0 right-2 text-4xl text-gray-200 font-serif">”</span>
+                </div>
+            </FadeIn>
+
+            {/* Section 3: Regional Vibe (Output Stats) */}
+            <FadeIn delay={0.4} className="w-full">
+                <Card className="bg-white/40 backdrop-blur-md border border-white/60 shadow-lg p-5">
+                    <div className="flex flex-col gap-3">
+                        <div className="flex justify-between items-center border-b border-gray-200/50 pb-2">
+                            <span className="font-semibold text-gray-700 flex items-center gap-1">
+                                📍 {t('region_report_title', { region: regionName })}
+                            </span>
                         </div>
 
-                        <div className="w-full h-px bg-gray-100 my-1" />
-
-                        <p className="text-lg text-gray-700 leading-relaxed font-medium break-keep animate-fade-in-up">
-                            {analysis}
-                        </p>
+                        <div className="flex justify-around items-center pt-1">
+                            <div className="flex flex-col items-center">
+                                <span className="text-xs text-gray-500 mb-1">{t('happiness_index')}</span>
+                                <span className={`text-2xl font-bold ${scoreColor}`}>
+                                    {happinessScore}%
+                                </span>
+                            </div>
+                            <div className="w-px h-8 bg-gray-300/50" />
+                            <div className="flex flex-col items-center">
+                                <span className="text-xs text-gray-500 mb-1">{t('participants')}</span>
+                                <span className="text-2xl font-bold text-gray-700">
+                                    {totalVotes.toLocaleString()}
+                                    <span className="text-sm font-normal text-gray-500 ml-0.5">명</span>
+                                </span>
+                            </div>
+                        </div>
                     </div>
-
-                    {/* Background Decor */}
-                    <div className={`absolute -top-10 -right-10 w-32 h-32 rounded-full blur-3xl opacity-20 ${mood === 'good' ? 'bg-blue-400' : 'bg-gray-400'}`} />
-                    <div className={`absolute -bottom-10 -left-10 w-32 h-32 rounded-full blur-3xl opacity-20 ${mood === 'good' ? 'bg-yellow-400' : 'bg-blue-900'}`} />
                 </Card>
             </FadeIn>
 
-            <FadeIn delay={0.2}>
-                <MoodMap />
-            </FadeIn>
+            {/* Map Removed by User Request */}
 
-            <FadeIn delay={0.4}>
+            <FadeIn delay={0.8}>
                 <p className="text-center text-xs text-gray-400">
                     {t('reset_notice')}
                 </p>
