@@ -1,53 +1,46 @@
 {
     "app": {
         "title": "Moodcast",
-        "description": "地域ベースの感情同期プラットフォーム"
+        "description": "基于位置的情绪同步平台"
     },
     "home": {
         "hero": {
-            "title": "今、<highlight>{region}</highlight>の\n空気に同期しましょう。",
-            "start": "始める",
-            "nudge": "今日はどんな一日でしたか？",
-            "nudge_returning": "お帰りなさい！今日の気分はどうですか？"
+            "title": "现在就与<highlight>{region}</highlight>的\n气流同步。",
+            "start": "开始",
+            "nudge": "今天过得怎么样？",
+            "nudge_returning": "欢迎回来！最近心情如何？"
         }
     },
     "vote": {
         "gender": {
-            "question": "性別を選択してください",
+            "question": "请选择性别",
             "male": "男性",
             "female": "女性"
         },
         "mood": {
-            "question": "今の気分はどうですか？",
-            "good": "良い",
-            "bad": "悪い",
-            "instruction_hold": "長押ししてください...",
-            "instruction_release": "離して！",
-            "instruction_default": "ボタンを長押しして感情を込めましょう"
+            "question": "现在感觉如何？",
+            "good": "好",
+            "bad": "不好",
+            "instruction_hold": "请长按按钮...",
+            "instruction_release": "松开！",
+            "instruction_default": "长按按钮以同步你的情绪"
         },
         "header": {
-            "title": "こんにちは！<highlight>{region}</highlight>の雰囲気を一緒に作りましょう。"
+            "title": "你好！让我们一起创造<highlight>{region}</highlight>的氛围。"
         }
     },
     "dashboard": {
-        "title": "{region}の<highlight>気分天気予報</highlight>",
-        "participants": "参加者",
+        "title": "{region}的<highlight>心情天气</highlight>",
+        "participants": "贡献者",
         "happiness_index": "幸福指数",
-        "reset_notice": "データは深夜0時にリセットされます。",
-        "my_mood_prefix": "今日あなたは",
-        "my_mood_good": "良い",
-        "my_mood_bad": "悪い",
-        "my_mood_suffix": "を選びました。",
-        "region_report_title": "{region} レポート",
-        "live_update": "更新されました",
-        "share_button": "この雰囲気を共有",
-        "data_lab_title": "データラボ"
-    },
-    "error": {
-        "error": "データを分析できませんでした。"
-    },
-    "common": {
-        "world": "世界",
-        "unknown": "不明"
+        "reset_notice": "数据将在午夜重置。",
+        "my_mood_prefix": "你今天选择了 ",
+        "my_mood_good": "好",
+        "my_mood_bad": "不好",
+        "my_mood_suffix": "。",
+        "region_report_title": "{region} 报告",
+        "live_update": "刚刚更新",
+        "share_button": "分享这种氛围",
+        "data_lab_title": "数据实验室"
     }
 }

@@ -1,14 +1,14 @@
 {
     "app": {
         "title": "Moodcast",
-        "description": "Plataforma de sincronización de estado de ánimo local"
+        "description": "Plataforma de sincronización de vibras locales"
     },
     "home": {
         "hero": {
-            "title": "Sincronízate con el ambiente\nde <highlight>{region}</highlight> ahora.",
+            "title": "Sincronízate con la vibra de\n<highlight>{region}</highlight> ahora.",
             "start": "Empezar",
-            "nudge": "¿Qué tal tu día?",
-            "nudge_returning": "¡Bienvenido de nuevo! ¿Cómo te sientes?"
+            "nudge": "¿Qué tal tu día hoy?",
+            "nudge_returning": "¡Bienvenido de nuevo! ¿Cómo va ese ánimo?"
         }
     },
     "vote": {
@@ -18,33 +18,33 @@
             "female": "Mujer"
         },
         "mood": {
-            "question": "¿Cómo te sientes?",
+            "question": "¿Cómo te sientes ahora mismo?",
             "good": "Bien",
             "bad": "Mal",
-            "instruction_hold": "Mantén presionado...",
-            "instruction_release": "¡Suelta!",
-            "instruction_default": "Mantén presionado para capturar tu estado de ánimo"
+            "instruction_hold": "Mantén pulsado...",
+            "instruction_release": "¡Suelta ahora!",
+            "instruction_default": "Mantén pulsado para capturar tu vibra"
         },
         "header": {
-            "title": "¡Hola! Creemos juntos el ambiente de <highlight>{region}</highlight>."
+            "title": "¡Hola! Creemos juntos la atmósfera de <highlight>{region}</highlight>."
         }
     },
     "dashboard": {
         "title": "<highlight>Clima Emocional</highlight> de {region}",
-        "participants": "Participantes",
+        "participants": "Colaboradores",
         "happiness_index": "Índice de Felicidad",
         "reset_notice": "Los datos se reinician a medianoche.",
-        "my_mood_prefix": "Elegiste ",
+        "my_mood_prefix": "Hoy, elegiste ",
         "my_mood_good": "Bien",
         "my_mood_bad": "Mal",
-        "my_mood_suffix": " hoy.",
+        "my_mood_suffix": ".",
         "region_report_title": "Informe de {region}",
         "live_update": "Recién actualizado",
-        "share_button": "Compartir este ambiente",
+        "share_button": "Compartir esta vibra",
         "data_lab_title": "Laboratorio de Datos"
     },
     "error": {
-        "error": "No se pueden analizar los datos."
+        "error": "No se pudieron analizar los datos de la vibra."
     },
     "common": {
         "world": "Mundo",

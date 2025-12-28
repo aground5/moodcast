@@ -8,7 +8,7 @@
             "title": "Синхронизируйтесь с атмосферой\n<highlight>{region}</highlight> сейчас.",
             "start": "Начать",
             "nudge": "Как прошел твой день?",
-            "nudge_returning": "С возвращением! Как настроение?"
+            "nudge_returning": "С возвращением! Как настроение в последнее время?"
         }
     },
     "vote": {
@@ -18,10 +18,10 @@
             "female": "Женщина"
         },
         "mood": {
-            "question": "Как вы себя чувствуете?",
+            "question": "Как вы себя чувствуете прямо сейчас?",
             "good": "Хорошо",
             "bad": "Плохо",
-            "instruction_hold": "Удерживайте...",
+            "instruction_hold": "Удерживайте кнопку...",
             "instruction_release": "Отпустите!",
             "instruction_default": "Нажмите и удерживайте, чтобы зафиксировать настроение"
         },
@@ -31,20 +31,20 @@
     },
     "dashboard": {
         "title": "<highlight>Погода Настроения</highlight> в {region}",
-        "participants": "Участники",
+        "participants": "Контрибьюторы",
         "happiness_index": "Индекс Счастья",
         "reset_notice": "Данные сбрасываются в полночь.",
-        "my_mood_prefix": "Вы выбрали ",
+        "my_mood_prefix": "Сегодня вы выбрали ",
         "my_mood_good": "Хорошо",
         "my_mood_bad": "Плохо",
-        "my_mood_suffix": " сегодня.",
+        "my_mood_suffix": ".",
         "region_report_title": "Отчет по {region}",
         "live_update": "Только что обновлено",
-        "share_button": "Поделиться настроением",
+        "share_button": "Поделиться этим вайбом",
         "data_lab_title": "Лаборатория данных"
     },
     "error": {
-        "error": "Невозможно проанализировать данные."
+        "error": "Не удалось проанализировать данные настроения."
     },
     "common": {
         "world": "Мир",

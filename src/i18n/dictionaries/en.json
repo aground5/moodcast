@@ -7,8 +7,8 @@
         "hero": {
             "title": "Sync with the vibe of\n<highlight>{region}</highlight> now.",
             "start": "Start",
-            "nudge": "How was your day?",
-            "nudge_returning": "Welcome back! How's your mood?"
+            "nudge": "How was your day today?",
+            "nudge_returning": "Welcome back! How’s your mood lately?"
         }
     },
     "vote": {
@@ -18,7 +18,7 @@
             "female": "Female"
         },
         "mood": {
-            "question": "How are you feeling?",
+            "question": "How are you feeling right now?",
             "good": "Good",
             "bad": "Bad",
             "instruction_hold": "Hold button...",
@@ -31,20 +31,20 @@
     },
     "dashboard": {
         "title": "<highlight>Mood Weather</highlight> of {region}",
-        "participants": "Participants",
+        "participants": "Contributors",
         "happiness_index": "Happiness Index",
-        "reset_notice": "Data resets at midnight.",
-        "my_mood_prefix": "You chose ",
+        "reset_notice": "Data resets every day at midnight.",
+        "my_mood_prefix": "Today, you chose ",
         "my_mood_good": "Good",
         "my_mood_bad": "Bad",
-        "my_mood_suffix": " today.",
+        "my_mood_suffix": ".",
         "region_report_title": "{region} Report",
         "live_update": "Just updated",
         "share_button": "Share this Vibe",
         "data_lab_title": "Data Lab"
     },
     "error": {
-        "error": "Unable to analyze data."
+        "error": "Unable to analyze the vibe data."
     },
     "common": {
         "world": "World",

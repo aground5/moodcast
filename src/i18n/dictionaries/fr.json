@@ -1,14 +1,14 @@
 {
     "app": {
         "title": "Moodcast",
-        "description": "Plateforme de synchronisation d'humeur locale"
+        "description": "Plateforme de synchronisation d'ambiance locale"
     },
     "home": {
         "hero": {
             "title": "Synchronisez-vous avec l'ambiance\nde <highlight>{region}</highlight> maintenant.",
             "start": "Commencer",
             "nudge": "Comment s'est passée votre journée ?",
-            "nudge_returning": "Bon retour ! Quelle est votre humeur ?"
+            "nudge_returning": "Bon retour ! Quelle est votre humeur ces derniers temps ?"
         }
     },
     "vote": {
@@ -18,11 +18,11 @@
             "female": "Femme"
         },
         "mood": {
-            "question": "Comment vous sentez-vous ?",
+            "question": "Comment vous sentez-vous en ce moment ?",
             "good": "Bien",
             "bad": "Mal",
-            "instruction_hold": "Maintenez...",
-            "instruction_release": "Relâchez !",
+            "instruction_hold": "Maintenez le bouton...",
+            "instruction_release": "Relâchez maintenant !",
             "instruction_default": "Appuyez longuement pour capturer votre humeur"
         },
         "header": {
@@ -31,20 +31,20 @@
     },
     "dashboard": {
         "title": "<highlight>Météo de l'Humeur</highlight> à {region}",
-        "participants": "Participants",
+        "participants": "Contributeurs",
         "happiness_index": "Indice de Bonheur",
-        "reset_notice": "Les données sont réinitialisées à minuit.",
-        "my_mood_prefix": "Vous avez choisi ",
+        "reset_notice": "Les données sont réinitialisées chaque jour à minuit.",
+        "my_mood_prefix": "Aujourd'hui, vous avez choisi ",
         "my_mood_good": "Bien",
         "my_mood_bad": "Mal",
-        "my_mood_suffix": " aujourd'hui.",
+        "my_mood_suffix": ".",
         "region_report_title": "Rapport {region}",
-        "live_update": "Mise à jour à l'instant",
+        "live_update": "Mis à jour à l'instant",
         "share_button": "Partager cette ambiance",
         "data_lab_title": "Labo de Données"
     },
     "error": {
-        "error": "Impossible d'analyser les données."
+        "error": "Impossible d'analyser les données d'ambiance."
     },
     "common": {
         "world": "Monde",

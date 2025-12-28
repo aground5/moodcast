@@ -1,13 +1,13 @@
 {
     "app": {
         "title": "Moodcast",
-        "description": "Lokale Stimmungs-Synchronisationsplattform"
+        "description": "Plattform zur Synchronisierung lokaler Stimmung"
     },
     "home": {
         "hero": {
-            "title": "Synchronisiere dich jetzt mit der\nStimmung in <highlight>{region}</highlight>.",
+            "title": "Synchronisiere dich jetzt mit dem\nVibe von <highlight>{region}</highlight>.",
             "start": "Starten",
-            "nudge": "Wie war dein Tag?",
+            "nudge": "Wie war dein Tag heute?",
             "nudge_returning": "Willkommen zurück! Wie ist deine Stimmung?"
         }
     },
@@ -18,33 +18,33 @@
             "female": "Weiblich"
         },
         "mood": {
-            "question": "Wie fühlst du dich?",
+            "question": "Wie fühlst du dich gerade?",
             "good": "Gut",
             "bad": "Schlecht",
             "instruction_hold": "Gedrückt halten...",
-            "instruction_release": "Loslassen!",
-            "instruction_default": "Drücke lange, um deine Stimmung einzufangen"
+            "instruction_release": "Jetzt loslassen!",
+            "instruction_default": "Halte den Button gedrückt, um deinen Vibe einzufangen"
         },
         "header": {
-            "title": "Hallo! Lass uns gemeinsam die Stimmung in <highlight>{region}</highlight> gestalten."
+            "title": "Hallo! Lass uns gemeinsam den Vibe von <highlight>{region}</highlight> gestalten."
         }
     },
     "dashboard": {
         "title": "<highlight>Stimmungswetter</highlight> in {region}",
-        "participants": "Teilnehmer",
+        "participants": "Mitwirkende",
         "happiness_index": "Glücksindex",
-        "reset_notice": "Daten werden um Mitternacht zurückgesetzt.",
-        "my_mood_prefix": "Du hast heute ",
+        "reset_notice": "Die Daten werden um Mitternacht zurückgesetzt.",
+        "my_mood_prefix": "Heute hast du dich für ",
         "my_mood_good": "Gut",
         "my_mood_bad": "Schlecht",
-        "my_mood_suffix": " gewählt.",
-        "region_report_title": "{region} Bericht",
+        "my_mood_suffix": " entschieden.",
+        "region_report_title": "Bericht für {region}",
         "live_update": "Gerade aktualisiert",
-        "share_button": "Stimmung teilen",
+        "share_button": "Diesen Vibe teilen",
         "data_lab_title": "Datenlabor"
     },
     "error": {
-        "error": "Daten konnten nicht analysiert werden."
+        "error": "Stimmungsdaten konnten nicht analysiert werden."
     },
     "common": {
         "world": "Welt",
