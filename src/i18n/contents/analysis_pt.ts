@@ -92,14 +92,6 @@ export const ANALYSIS_MENT_DB_PT = {
         "Esse botão de 'Ruim' que você acabou de apertar... você não apertou só porque está com fome, né? Seja sincero.",
         "Espera! Respira fundo por 1 minuto e pensa de novo. É realmente tão ruim assim?",
         "Talvez seja só falta de sono? Uma boa noite de descanso vai consertar tudo hoje."
-    ],
-    speed_check: [
-        "Eita, 0,3 segundos? Você sentiu seus sentimentos ou foi só memória muscular? Vamos ser realistas. 😉",
-        "Você apertou mais rápido que um reflexo. É seu humor ou só um hábito? Tira um segundo para se checar de verdade."
-    ],
-    deja_vu: [
-        "Falha na Matrix! Você escolheu exatamente este humor nesta mesma hora na semana passada. Sua vida está em looping? 🔄",
-        "Exatamente 7 dias atrás você estava neste mesmo estado mental. Seu humor é surpreendentemente previsível. Dá até medo."
     ]
 } as const;
 

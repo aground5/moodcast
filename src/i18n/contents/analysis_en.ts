@@ -88,25 +88,11 @@ export const ANALYSIS_MENT_DB_EN = {
     ],
 
     // --- 4. Special Nudges (15% Chance) ---
-    bad_sugar_rush: [
+    bad_nudge: [
         "Are you actually sad, or is this just low blood sugar? Eat a donut and re-evaluate your life in 10 minutes. 🍩",
-        "The 'Bad' button you just pressed... you didn't press it just because you're hungry, did you? Be honest."
-    ],
-    bad_debugger: [
+        "The 'Bad' button you just pressed... you didn't press it just because you're hungry, did you? Be honest.",
         "Wait! Don't let a bad 5 minutes convince you that you've had a bad day. Your day is better than you think.",
         "Did you actually think about that choice, or was it just a reflex? Take a deep breath and try to find one good thing. 🧘‍♂️"
-    ],
-    good_gaslighting: [
-        "By clicking 'Good,' you just boosted {region}’s happiness density by 0.01%. You're basically a local hero. 🌟",
-        "That choice just made the city air 1% warmer. Look at you, being a literal ray of sunshine."
-    ],
-    speed_check: [
-        "Whoa, 0.3 seconds? Did you even feel your feelings, or was that just muscle memory? Let's be real. 😉",
-        "You clicked that faster than a reflex. Is this your mood or just your habit? Take a second to actually check in."
-    ],
-    deja_vu: [
-        "Glitch in the matrix! You picked this exact mood at this exact time last week. Is your life on a loop? 🔄",
-        "Exactly 7 days ago, you were in this same headspace. Your mood is surprisingly predictable. Creepy."
     ]
 } as const;
 

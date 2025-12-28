@@ -87,25 +87,11 @@ export const ANALYSIS_MENT_DB_DE = {
     ],
 
     // --- 4. Spezielle Nudges (Meta - 15 % Wahrscheinlichkeit) ---
-    bad_sugar_rush: [
+    bad_nudge: [
         "Bist du wirklich traurig oder hast du einfach nur Hunger? Iss einen Donut und überdenke dein Leben in 10 Minuten noch einmal. 🍩",
-        "Der ‚Schlecht‘-Button, den du gerade gedrückt hast... hast du den nur gedrückt, weil du ‚hangry‘ bist? Sei ehrlich."
-    ],
-    bad_debugger: [
+        "Der ‚Schlecht‘-Button, den du gerade gedrückt hast... hast du den nur gedrückt, weil du ‚hangry‘ bist? Sei ehrlich.",
         "Warte! Lass dir von 5 schlechten Minuten nicht einreden, dass du einen schlechten Tag hattest. Dein Tag ist besser, als du denkst. 🧘‍♂️",
         "War das gerade eine bewusste Wahl oder nur ein Reflex? Atme tief durch und versuche, eine einzige gute Sache an heute zu finden."
-    ],
-    good_gaslighting: [
-        "Indem du auf ‚Gut‘ geklickt hast, hast du die Glücksdichte von {region} um 0,01 % gesteigert. Du bist praktisch ein lokaler Held. 🌟",
-        "Diese Wahl hat die Stadtluft gerade um 1 Grad wärmer gemacht. Schau dich an, du wandelnder Sonnenschein."
-    ],
-    speed_check: [
-        "Hoppla, 0,3 Sekunden? Hast du deine Gefühle überhaupt gespürt oder war das nur Muskelgedächtnis? Sei ehrlich zu dir selbst. 😉",
-        "Du hast schneller geklickt, als dein Gehirn denken kann. Ist das deine echte Laune oder nur Gewohnheit? Halt kurz inne."
-    ],
-    deja_vu: [
-        "Glitch in der Matrix! Du hast exakt diese Laune zur exakt gleichen Zeit letzte Woche gewählt. Läuft dein Leben in einer Schleife? 🔄",
-        "Genau vor 7 Tagen warst du in der gleichen Stimmung. Deine Laune ist erschreckend vorhersehbar. Fast schon gruselig."
     ]
 } as const;
 

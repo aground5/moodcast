@@ -87,25 +87,11 @@ export const ANALYSIS_MENT_DB_FR = {
     ],
 
     // --- 4. Nudges Spéciaux (Meta - 15 % de chance) ---
-    bad_sugar_rush: [
+    bad_nudge: [
         "Êtes-vous vraiment triste, ou est-ce juste une hypoglycémie ? Mangez un éclair au chocolat et réévaluez votre vie dans 10 minutes. 🍫",
-        "Le bouton 'Mauvais' sur lequel vous venez d'appuyer... vous n'avez pas cliqué juste parce que vous avez faim, n'est-ce pas ? Soyez honnête."
-    ],
-    bad_debugger: [
+        "Le bouton 'Mauvais' sur lequel vous venez d'appuyer... vous n'avez pas cliqué juste parce que vous avez faim, n'est-ce pas ? Soyez honnête.",
         "Attendez ! Ne laissez pas 5 mauvaises minutes vous convaincre que vous avez passé une mauvaise journée. Votre journée est meilleure que vous ne le pensez. 🧘‍♂️",
         "Avez-vous vraiment réfléchi à ce choix, ou était-ce juste un réflexe ? Prenez une grande inspiration et essayez de trouver une seule bonne chose."
-    ],
-    good_gaslighting: [
-        "En cliquant sur 'Bon', vous venez de booster la densité de bonheur de {region} de 0,01 %. Vous êtes pratiquement un héros local. 🌟",
-        "Ce choix vient de rendre l'air de la ville 1 % plus chaud. Regardez-vous, un véritable rayon de soleil."
-    ],
-    speed_check: [
-        "Ouh là, 0,3 seconde ? Avez-vous seulement ressenti vos émotions, ou était-ce juste de la mémoire musculaire ? Soyons réalistes. 😉",
-        "Vous avez cliqué plus vite qu'un réflexe. Est-ce votre humeur ou juste une habitude ? Prenez une seconde pour vraiment vérifier."
-    ],
-    deja_vu: [
-        "Bug dans la matrice ! Vous avez choisi exactement cette humeur à cette heure précise la semaine dernière. Votre vie tourne-t-elle en boucle ? 🔄",
-        "Il y a exactement 7 jours, vous étiez dans le même état d'esprit. Votre humeur est étonnamment prévisible. C'est presque effrayant."
     ]
 } as const;
 

@@ -87,25 +87,11 @@ export const ANALYSIS_MENT_DB_ES = {
     ],
 
     // --- 4. Nudges Especiales (Meta - 15% de probabilidad) ---
-    bad_sugar_rush: [
+    bad_nudge: [
         "¿Estás triste de verdad o es solo una bajada de azúcar? Cómete un donut y vuelve a evaluar tu vida en 10 minutos. 🍩",
-        "Ese botón de 'Mal' que acabas de pulsar... no lo habrás pulsado solo porque tienes hambre, ¿verdad? Sé sincero."
-    ],
-    bad_debugger: [
+        "Ese botón de 'Mal' que acabas de pulsar... no lo habrás pulsado solo porque tienes hambre, ¿verdad? Sé sincero.",
         "¡Espera! No dejes que 5 minutos malos te convenzan de que has tenido un mal día. Tu día es mejor de lo que crees. 🧘‍♂️",
         "¿Has pensado de verdad esa elección o ha sido solo un reflejo? Respira hondo e intenta encontrar una sola cosa buena hoy."
-    ],
-    good_gaslighting: [
-        "Al pulsar 'Bien', acabas de subir la densidad de felicidad de {region} un 0,01%. Eres prácticamente un héroe local. 🌟",
-        "Esa elección ha hecho que el aire de la ciudad sea un 1% más cálido. Mírate, eres un auténtico rayo de sol."
-    ],
-    speed_check: [
-        "¡Huy! ¿0,3 segundos? ¿Has sentido tus sentimientos o ha sido solo memoria muscular? Seamos realistas. 😉",
-        "Has pulsado más rápido que un reflejo. ¿Es tu humor o solo un hábito? Tómate un segundo para chequearte de verdad."
-    ],
-    deja_vu: [
-        "¡Fallo en la Matrix! Elegiste exactamente este humor a esta misma hora la semana pasada. ¿Tu vida es un bucle? 🔄",
-        "Hace exactamente 7 días estabas en este mismo estado mental. Tu humor es sorprendentemente predecible. Da miedito."
     ]
 } as const;
 
