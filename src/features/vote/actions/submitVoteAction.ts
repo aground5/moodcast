@@ -21,21 +21,30 @@ export async function submitVoteAction(
         return { success: false, error: 'User ID missing' };
     }
 
-    // 1. Determine Location
+    // 1. Determine Location & Timezone
     let region0 = 'Unknown';
     let region1 = 'Unknown';
     let region2 = 'Unknown';
     let lat = coords?.lat;
     let lng = coords?.lng;
+    let timezone = 'Asia/Seoul'; // Default
 
-    // Strategy A: Reverse Geocoding (if coords provided)
+    // Strategy A: GPS / Nominatim (if coords provided)
     if (lat && lng) {
         try {
+            // 1. Identify Timezone from Coordinates (Accurate)
+            const { find } = await import('geo-tz');
+            const tzResult = find(lat, lng);
+            if (tzResult && tzResult.length > 0) {
+                timezone = tzResult[0];
+            }
+
+            // 2. Identify Region Name
             const response = await fetch(
                 `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`,
                 {
                     headers: {
-                        'User-Agent': 'Moodcast/1.0', // Required by OSM
+                        'User-Agent': 'Moodcast/1.0',
                     },
                 }
             );
@@ -43,23 +52,28 @@ export async function submitVoteAction(
                 const data = await response.json();
                 const address = data.address;
 
-                // Map OSM address fields to Korean administrative divisions
                 region0 = address.country || 'Unknown';
                 region1 = address.city || address.province || address.state || 'Unknown';
                 region2 = address.borough || address.suburb || address.district || address.neighbourhood || 'Unknown';
             }
         } catch (e) {
-            console.error('Reverse Geocoding Failed:', e);
+            console.error('Geo Lookup Failed:', e);
         }
+    } else {
+        // Fallback: If no GPS, try to get Timezone from IP Headers
+        const headerStore = await headers();
+        const tzHeader = headerStore.get('x-vercel-ip-timezone') || headerStore.get('cf-timezone');
+        if (tzHeader) timezone = tzHeader;
     }
 
-    // Strategy B: Header Fallback (if strictly unknown OR if geocoding only gave us Country level)
-    let timezone = 'Asia/Seoul'; // Default
+    // Strategy B: Header Fallback (Location)
+    // Runs if:
+    // 1. No GPS provided (Strategy A didn't run for location)
+    // 2. GPS provided but Nominatim failed/returned insufficient data (region1 unknown/country-level)
     if (region1 === 'Unknown' || region1 === region0) {
         const headerStore = await headers();
         const city = headerStore.get('x-vercel-ip-city') || headerStore.get('cf-ipcity');
         const country = headerStore.get('x-vercel-ip-country') || headerStore.get('cf-ipcountry');
-        const tzHeader = headerStore.get('x-vercel-ip-timezone') || headerStore.get('cf-timezone');
 
         if (country) region0 = country;
 
@@ -70,7 +84,21 @@ export async function submitVoteAction(
             region1 = country;
         }
 
-        if (tzHeader) timezone = tzHeader;
+        // Note: We don't overwrite `timezone` here if GPS set it. 
+        // If GPS missed (else block above), we already tried headers.
+        // So just ensure fallback checks headers again if GPS was attempted but failed?
+        // Logic check:
+        // - Case GPS: `timezone` set by geo-tz. `else` block skipped.
+        // - Case No GPS: `timezone` set by headers in `else` block.
+        // - Case GPS Fail: `timezone` default ('Asia/Seoul'). Should we try headers? 
+        //   Yes, if `geo-tz` failed or exception occurred.
+        //   Refinement: Let's make timezone header check robust.
+
+        // Robust Timezone Fallback: If still default and headers available, take headers.
+        if (timezone === 'Asia/Seoul') {
+            const tzHeader = headerStore.get('x-vercel-ip-timezone') || headerStore.get('cf-timezone');
+            if (tzHeader) timezone = tzHeader;
+        }
     }
 
     // 1.5. Generate Persistent Analysis (Server-Side)
