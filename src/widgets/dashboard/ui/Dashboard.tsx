@@ -85,7 +85,7 @@ export function Dashboard({ initialAnalysis, initialStats }: { initialAnalysis?:
     const [showDataLab, setShowDataLab] = useState(false);
 
     const handleShare = async () => {
-        const text = `지금 ${regionName}의 기분은 어떨까? 내 기분과 비교해보세요! #MoodCast`;
+        const text = t('share_text', { region: regionName });
         const url = window.location.href;
 
         if (navigator.share) {
@@ -97,7 +97,7 @@ export function Dashboard({ initialAnalysis, initialStats }: { initialAnalysis?:
         } else {
             // Fallback
             navigator.clipboard.writeText(`${text} ${url}`);
-            alert('링크가 복사되었습니다!');
+            alert(t('copy_success'));
         }
     };
 

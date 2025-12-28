@@ -41,7 +41,15 @@
         "region_report_title": "{region} 报告",
         "live_update": "刚刚更新",
         "share_button": "分享这种氛围",
-        "data_lab_title": "数据实验室"
+        "copy_success": "链接已复制！",
+        "share_text": "{region}现在的气流如何？快来看看和你的心情是否同频！ #MoodCast",
+        "datalab": {
+            "title": "数据实验室",
+            "gender_gap": "性别幸福度差异",
+            "male": "男性",
+            "female": "女性",
+            "coming_soon": "每小时情绪趋势功能即将上线。"
+        }
     },
     "error": {
         "error": "无法分析情绪数据。"

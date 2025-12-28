@@ -186,7 +186,7 @@ export function MoodSelector() {
                         animate={{ opacity: 1, y: 0 }}
                         className="text-sm text-gray-500 font-medium"
                     >
-                        계속 누르고 있으세요...
+                        {t('instruction_hold')}
                     </motion.p>
                 )}
                 {isCharged && (
@@ -195,12 +195,12 @@ export function MoodSelector() {
                         animate={{ scale: 1.1 }}
                         className="text-sm text-blue-600 font-bold animate-pulse"
                     >
-                        이제 손을 떼세요!
+                        {t('instruction_release')}
                     </motion.p>
                 )}
                 {!holdingMood && (
                     <p className="text-sm text-gray-400">
-                        버튼을 꾹 눌러 감정을 담아보세요
+                        {t('instruction_default')}
                     </p>
                 )}
             </div>

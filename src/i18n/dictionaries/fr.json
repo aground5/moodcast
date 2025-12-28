@@ -41,7 +41,15 @@
         "region_report_title": "Rapport {region}",
         "live_update": "Mis à jour à l'instant",
         "share_button": "Partager cette ambiance",
-        "data_lab_title": "Labo de Données"
+        "copy_success": "Lien copié !",
+        "share_text": "Quelle est l'ambiance à {region} ? Comparez-la avec votre humeur ! #MoodCast",
+        "datalab": {
+            "title": "Labo de Données",
+            "gender_gap": "Écart de Bonheur (H/F)",
+            "male": "Hommes",
+            "female": "Femmes",
+            "coming_soon": "Les tendances horaires arrivent bientôt."
+        }
     },
     "error": {
         "error": "Impossible d'analyser les données d'ambiance."

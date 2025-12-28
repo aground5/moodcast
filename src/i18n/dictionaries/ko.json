@@ -41,7 +41,14 @@
         "region_report_title": "{region} 리포트",
         "live_update": "방금 업데이트됨",
         "share_button": "이 기류 공유하기",
-        "data_lab_title": "데이터 랩"
+        "copy_success": "링크가 복사되었습니다!",
+        "datalab": {
+            "title": "데이터 랩",
+            "gender_gap": "성별 행복도 격차",
+            "male": "남자",
+            "female": "여자",
+            "coming_soon": "시간대별 추이 기능은 준비 중입니다."
+        }
     },
     "error": {
         "error": "데이터를 분석할 수 없습니다."

@@ -41,7 +41,15 @@
         "region_report_title": "Relatório de {region}",
         "live_update": "Atualizado agora",
         "share_button": "Compartilhar esta vibe",
-        "data_lab_title": "Laboratório de Dados"
+        "copy_success": "Link copiado!",
+        "share_text": "Qual é a vibe de {region} agora? Sincronize com a sua! #MoodCast",
+        "datalab": {
+            "title": "Laboratório de Dados",
+            "gender_gap": "Diferença de Felicidade",
+            "male": "Homens",
+            "female": "Mulheres",
+            "coming_soon": "Tendências por hora chegando em breve."
+        }
     },
     "error": {
         "error": "Não foi possível analisar os dados da vibe."

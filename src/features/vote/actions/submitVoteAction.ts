@@ -118,7 +118,11 @@ export async function submitVoteAction(
         }
 
         // Generate Analysis
-        analysis_text = analyzeScenario(gender, mood, nextStats, locale, t);
+        // We pass the resolved target region explicitly so the analysis text 
+        // refers to the user's specific location (e.g. "Shinjuku") even if 
+        // the stats fell back to "Global" or "Japan".
+        const targetRegion = region2 !== 'Unknown' ? region2 : region1 !== 'Unknown' ? region1 : region0;
+        analysis_text = analyzeScenario(gender, mood, nextStats, locale, t, targetRegion !== 'Unknown' ? targetRegion : undefined);
 
     } catch (e) {
         console.error("Analysis generation failed:", e);

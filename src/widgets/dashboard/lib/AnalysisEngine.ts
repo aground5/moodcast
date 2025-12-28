@@ -34,9 +34,12 @@ export function analyzeScenario(
     mood: Mood,
     stats: DashboardStats,
     locale: string = 'ko',
-    t: (key: string) => string
+    t: (key: string) => string,
+    displayRegion?: string // Explicit override for {region} placeholder
 ): string {
     const { score: totalScore, male, female, region } = stats;
+    // Use displayRegion if provided, otherwise fallback to stats.region
+    const targetRegion = displayRegion || region;
 
     const myPeerScore = gender === 'male' ? male.score : female.score;
     const otherPeerScore = gender === 'male' ? female.score : male.score;
@@ -135,7 +138,7 @@ export function analyzeScenario(
     const otherScoreInt = Math.round(isMale ? female.score : male.score);
 
     message = message
-        .replace(/{region}/g, region)
+        .replace(/{region}/g, targetRegion)
         .replace(/{gender}/g, myGenderTerm)
         .replace(/{otherGender}/g, otherGenderTerm)
         .replace(/{myScore}/g, myScoreInt.toString())

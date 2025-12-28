@@ -41,7 +41,14 @@
         "region_report_title": "{region} Report",
         "live_update": "Just updated",
         "share_button": "Share this Vibe",
-        "data_lab_title": "Data Lab"
+        "copy_success": "Link copied!",
+        "datalab": {
+            "title": "Data Lab",
+            "gender_gap": "Gender Happiness Gap",
+            "male": "Male",
+            "female": "Female",
+            "coming_soon": "Time-based trends are coming soon."
+        }
     },
     "error": {
         "error": "Unable to analyze the vibe data."

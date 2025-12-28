@@ -41,7 +41,15 @@
         "region_report_title": "Informe de {region}",
         "live_update": "Recién actualizado",
         "share_button": "Compartir esta vibra",
-        "data_lab_title": "Laboratorio de Datos"
+        "copy_success": "¡Enlace copiado!",
+        "share_text": "¿Qué vibra se respira en {region}? ¡Compárala con la tuya! #MoodCast",
+        "datalab": {
+            "title": "Laboratorio de Datos",
+            "gender_gap": "Brecha de Felicidad",
+            "male": "Hombres",
+            "female": "Mujeres",
+            "coming_soon": "Las tendencias por hora llegarán muy pronto."
+        }
     },
     "error": {
         "error": "No se pudieron analizar los datos de la vibra."

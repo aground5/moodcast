@@ -41,7 +41,15 @@
         "region_report_title": "Bericht für {region}",
         "live_update": "Gerade aktualisiert",
         "share_button": "Diesen Vibe teilen",
-        "data_lab_title": "Datenlabor"
+        "copy_success": "Link kopiert!",
+        "share_text": "Wie ist der Vibe in {region} gerade? Vergleiche ihn mit deinem! #MoodCast",
+        "datalab": {
+            "title": "Datenlabor",
+            "gender_gap": "Glücks-Gap (M/W)",
+            "male": "Männer",
+            "female": "Frauen",
+            "coming_soon": "Stündliche Trends folgen in Kürze."
+        }
     },
     "error": {
         "error": "Stimmungsdaten konnten nicht analysiert werden."
