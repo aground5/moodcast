@@ -127,9 +127,9 @@ export async function submitVoteAction(
         user_id: userId,
         lat,
         lng,
-        region_lv0: region0,
-        region_lv1: region1,
-        region_lv2: region2,
+        region_lv0: region0 !== 'Unknown' ? region0 : null,
+        region_lv1: region1 !== 'Unknown' ? region1 : null,
+        region_lv2: region2 !== 'Unknown' ? region2 : null,
         ip_hash: 'server-action',
         analysis_text, // Persist the generated text
     });
