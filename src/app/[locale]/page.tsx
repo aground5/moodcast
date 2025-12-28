@@ -17,8 +17,12 @@ export default async function Page() {
     const { detectLocationFromHeaders } = await import('@/shared/lib/location');
     const { timezone, region1, region0 } = await detectLocationFromHeaders(locale);
 
-    // Initial display region preference: City -> Country -> Korea
-    let ipRegion = region1 !== 'Unknown' ? region1 : (region0 !== 'Unknown' ? region0 : "대한민국");
+    // Initial display region preference:
+    // User Feedback: "Why show English City (Seodaemun-gu)? Show Localized Country (대한민국) initially."
+    // So we prioritize region0 (Localized Country) for the initial display text.
+    // And we pass region1 (English City) as a hidden prop for client-side sticky refinement.
+    let ipRegion = region0 !== 'Unknown' ? region0 : "대한민국";
+    let initialCity = region1 !== 'Unknown' ? region1 : undefined;
 
     // 4. Optimization: Check Cookie Timestamp (Timezone Aware)
     // Dynamic import to avoid build cyclic dependency if any
@@ -95,7 +99,8 @@ export default async function Page() {
         savedGender={savedGender}
         initialVote={initialVote}
         ipRegion={ipRegion}
-        initialCountry={region0} // Pass Country for accurate refinement
+        initialCountry={region0} // Still pass this for context if needed
+        initialCity={initialCity} // New Prop
         initialAnalysis={initialAnalysis}
     />;
 }

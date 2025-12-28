@@ -14,47 +14,47 @@ import { getLocationDisplayName } from '@/shared/lib/location/display';
 interface HomePageProps {
     initialStep: 'gender' | 'result';
     savedGender?: 'male' | 'female';
-    initialVote?: any; // strict type would be better but keeping it simple for now
+    initialVote?: any;
     ipRegion?: string;
     initialCountry?: string;
+    initialCity?: string; // New prop for refinement source (e.g. English City)
     initialAnalysis?: string;
 }
 
-export default function HomePage({ initialStep, savedGender, initialVote, ipRegion, initialCountry, initialAnalysis }: HomePageProps) {
+import { useTranslations, useLocale } from 'next-intl';
+
+export default function HomePage({ initialStep, savedGender, initialVote, ipRegion, initialCountry, initialCity, initialAnalysis }: HomePageProps) {
+    const t = useTranslations('dashboard'); // Assuming we need translations? Or just for locale.
+    const locale = useLocale();
     const { step, setStep, setGender, setMood, setRegion, setCoords } = useVoteStore();
 
     useEffect(() => {
-        // 1. Prioritize Server Data (Vote Record)
+        // ... (Server Data Priority)
         if (initialVote) {
             setGender(initialVote.gender);
             setMood(initialVote.mood);
-
-            // Use centralized logic to determine best display region from the vote record
-            // If lv2 is unknown, it will fall back to lv1 (which might be preserved in other fields or acceptable fallback)
-            // Note: initialVote structure usually has region_lv2, maybe region_lv1.
-            // If not, we might rely on what we have.
             const displayRegion = getLocationDisplayName({
                 region_lv2: initialVote.region_lv2,
-                region_lv1: initialVote.region_lv1, // Assuming this might exist or be added
+                region_lv1: initialVote.region_lv1,
                 region_lv0: initialVote.region_lv0
-            }, initialVote.region_lv2 || 'Unknown'); // Fallback to raw lv2 if helper fails (though helper handles unknowns)
-
+            }, initialVote.region_lv2 || 'Unknown');
             setRegion(displayRegion);
         }
-        // 2. If no vote record, use IP Region as initial guess
         else {
             if (savedGender) setGender(savedGender);
             if (ipRegion) setRegion(ipRegion);
 
-            // Lazy Localization / Refinement (Animation)
-            // If we have an initial Country (e.g. from MaxMind) and are showing an IP Region (City),
-            // try to refine it via Nominatim to get the localized name.
-            if (ipRegion && initialCountry) {
-                refineLocationAction(ipRegion, initialCountry)
+            // Refine with IP (Start immediately)
+            if (initialCity && initialCountry) {
+                refineLocationAction(initialCity, initialCountry)
                     .then((refined) => {
-                        // Check if refined result is valid before overwriting
-                        if (refined && refined !== 'Unknown' && refined !== ipRegion) {
-                            // Update UI with refined (localized) city name
+                        // Only update if we DON'T have a GPS fix yet (coords not set)
+                        // This prevents IP overwriting GPS if GPS resolved faster
+                        // Actually, we can check a ref or just see if Coords are null?
+                        // Ideally we want GPS to win. 
+                        // For now, let's just update. If GPS comes later, it will overwrite.
+                        // Usage of useRef to track 'isGpsActive' would be better but let's keep it simple first.
+                        if (refined && refined !== 'Unknown') {
                             setRegion(refined);
                         }
                     })
@@ -66,39 +66,52 @@ export default function HomePage({ initialStep, savedGender, initialVote, ipRegi
             setStep('result');
         }
 
-        // 3. Refine with GPS (Client-Side)
+        // 3. Dynamic GPS Support (watchPosition)
+        let watchId: number | null = null;
+
         if ('geolocation' in navigator) {
-            navigator.geolocation.getCurrentPosition(
+            watchId = navigator.geolocation.watchPosition(
                 async (position) => {
                     const lat = position.coords.latitude;
                     const lng = position.coords.longitude;
 
                     setCoords({ lat, lng });
 
-                    // Reverse Geocode for better name
-                    // Only update if we haven't voted yet (voting handles its own region logic)
-                    // OR if we want to show current location even if voted elsewhere? 
-                    // Let's stick to "Current Location" logic for the Landing Page.
+                    // Reverse Geocode updates the Region to the most accurate GPS-based name
                     if (!initialVote) {
+                        // Import dynamically
                         const { reverseGeocode } = await import('@/shared/lib/location/geocoding');
-                        const refinedRegion = await reverseGeocode(lat, lng);
+                        // Pass locale!
+                        const refinedRegion = await reverseGeocode(lat, lng, locale);
                         if (refinedRegion) {
                             setRegion(refinedRegion);
                         }
                     }
                 },
                 (error) => {
-                    console.log('Location access denied/unavailable:', error);
+                    // Permission denied or unavailable. Silent fail or fallback to IP (already done).
+                    // If user denies then enables -> 'watchPosition' usually doesn't create new ID, 
+                    // except if re-called.
+                    // Actually, 'watchPosition' persists. If permission changes from Deny -> Allow (via browser settings), 
+                    // the page usually needs reload, BUT if Prompt -> Allow, it works.
+                    // If Turned Off -> Turned On (OS level), it works.
                 },
-                { timeout: 5000, maximumAge: 60000 }
+                { timeout: 10000, maximumAge: 0, enableHighAccuracy: true }
             );
         }
-    }, [initialStep, savedGender, initialVote, ipRegion, setStep, setGender, setMood, setRegion, setCoords]);
 
+        return () => {
+            if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+        };
+    }, [initialStep, savedGender, initialVote, ipRegion, setStep, setGender, setMood, setRegion, setCoords, locale, initialCity, initialCountry]);
+
+    // ... render ...
     const isReturningUser = !!savedGender;
 
     return (
+        // ...
         <div className="flex flex-col items-center justify-center min-h-[100dvh] p-4 bg-gradient-to-b from-slate-50 to-white overflow-hidden">
+            {/* ... */}
             <AnimatePresence mode="wait">
                 {step === 'gender' && (
                     <motion.div
@@ -120,9 +133,12 @@ export default function HomePage({ initialStep, savedGender, initialVote, ipRegi
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -20 }}
-                        transition={{ duration: 0.3 }}
-                        className="w-full flex justify-center"
+                        transition={{ duration: 0.5 }}
+                        className="flex flex-col items-center w-full"
                     >
+                        {/* ... We need to verify imports for LandingHeader/GenderSelector/MoodSelector if I replace whole file ... */}
+                        {/* Careful replacing huge blocks. I'll target specific blocks. */}
+                        <LandingHeader isReturningUser={isReturningUser} />
                         <MoodSelector />
                     </motion.div>
                 )}

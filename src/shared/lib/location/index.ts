@@ -184,21 +184,13 @@ export async function detectLocationFromGPS(lat: number, lng: number, locale: st
         }
 
         // 2. Identify Region Name via Nominatim
-        const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=${locale}`,
-            {
-                headers: {
-                    'User-Agent': 'Moodcast/1.0',
-                },
-            }
-        );
+        // Use shared refactored function
+        const { fetchReverseGeocodeRaw } = await import('./geocoding');
+        const address = await fetchReverseGeocodeRaw(lat, lng, locale);
 
-        if (response.ok) {
-            const data = await response.json();
-            if (data.address) {
-                const mapped = mapNominatimAddress(data.address);
-                result = { ...result, ...mapped };
-            }
+        if (address) {
+            const mapped = mapNominatimAddress(address);
+            result = { ...result, ...mapped };
         }
     } catch (e) {
         console.error('GPS Location Detection Failed:', e);
