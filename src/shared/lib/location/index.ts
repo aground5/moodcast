@@ -30,27 +30,32 @@ export async function detectLocationFromHeaders(locale: string = 'ko'): Promise<
         const geoResult = await lookupIP(ip, locale);
         if (geoResult) {
             city = geoResult.city;
-            country = geoResult.country;
+            // Immediate Country Localization:
+            // Use Intl.DisplayNames + ISO Code (which is reliable) for instant country localization in ANY locale.
+            // This meets the user's request: "Show at least Country in local language quickly".
+            const code = geoResult.countryCode;
+            if (code && code !== 'Unknown') {
+                try {
+                    const regionNames = new Intl.DisplayNames([locale], { type: 'region' });
+                    country = regionNames.of(code) || geoResult.country;
+                } catch (e) {
+                    country = geoResult.country;
+                }
+            } else {
+                country = geoResult.country;
+            }
             timezone = geoResult.timezone;
 
-            // Localization Fallback:
-            // MaxMind mostly supports: de, en, es, fr, ja, pt-BR, ru, zh-CN.
-            // If the user's locale (e.g. ko) is NOT in MaxMind's list, we likely got the English name.
-            // We should use Nominatim to translate this English name to the target locale.
+            // Localization Fallback (DISABLED FOR PERFORMANCE):
+            // Calling Nominatim on every page load to translate "Seoul" -> "서울" adds significant latency (200ms-1s).
+            // For initial page load, speed is critical. We accept MaxMind's English output for unsupported locales.
+            /*
             if (!MAXMIND_SUPPORTED_LOCALES.includes(locale) && city !== 'Unknown') {
-                // Try to resolve "Seodaemun-gu" -> "서대문구"
-                const localizedCity = await localizeCityViaNominatim(city, country, locale);
-                if (localizedCity) city = localizedCity;
-
-                // Also localize country name if needed
-                if (country.length > 2) {
-                    // MaxMind returns full name e.g. "South Korea".
-                    // Nominatim/Intl might prefer codes, but let's try mapping common ones or use Intl if available?
-                    // Intl.DisplayNames expects codes usually. "South Korea" isn't a code.
-                    // But maybe we can leave country as english or map strict ones. 
-                    // For now, focus on City.
-                }
+                 // Try to resolve "Seodaemun-gu" -> "서대문구"
+                 const localizedCity = await localizeCityViaNominatim(city, country, locale);
+                 if (localizedCity) city = localizedCity;
             }
+            */
         }
     }
 
@@ -66,10 +71,17 @@ export async function detectLocationFromHeaders(locale: string = 'ko'): Promise<
 
         // Apply fallback localization (Nominatim) ONLY if we fell back to Vercel Headers
         // (Since MaxMind handles localization itself if supported)
+        // Also DISABLED for performance on initial load.
+        /*
         if (city !== 'Unknown' && locale !== 'en') {
-            const localizedCity = await localizeCityViaNominatim(city, country, locale);
-            if (localizedCity) city = localizedCity;
+            const localized = await localizeLocationViaNominatim(city, country, locale);
+            if (localized) {
+                if (localized.region1 && localized.region1 !== 'Unknown') city = localized.region1;
+                // If we had a mechanism to update region2 in this scope, we would. 
+                // But this function returns final object below.
+            }
         }
+        */
 
         // Also localize Country code if it came from Vercel
         if (country.length === 2) {
@@ -99,20 +111,37 @@ function clickToRegion2(city: string): string {
 }
 
 /**
- * Helper to localize city name using Nominatim Search.
+ * Maps Nominatim address structure to Moodcast region levels.
+ * Rules:
+ * Lv0 (Country) = country
+ * Lv1 (City)    = city (primary) > town > village > province > state
+ * Lv2 (Borough) = borough (primary) > district > suburb > neighbourhood
  */
-async function localizeCityViaNominatim(city: string, country: string, locale: string): Promise<string | null> {
+function mapNominatimAddress(addr: any): Partial<MoodcastLocation> {
+    return {
+        region0: addr.country || 'Unknown',
+        // Prioritize City-like entities
+        region1: addr.city || addr.town || addr.village || addr.province || addr.state || 'Unknown',
+        // Prioritize Sub-city entities (Gu, District)
+        region2: addr.borough || addr.district || addr.suburb || addr.neighbourhood || 'Unknown'
+    };
+}
+
+/**
+ * Helper to localize location using Nominatim Search.
+ * Returns structured location data.
+ */
+async function localizeLocationViaNominatim(queryCity: string, queryCountry: string, locale: string): Promise<Partial<MoodcastLocation> | null> {
     try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 1000); // 1s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 1200); // Slight boost to timeout
 
-        // Add addressdetails=1 to get structured address back
-        const query = `${city}, ${country}`;
+        const query = `${queryCity}, ${queryCountry}`;
         const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&accept-language=${locale}&limit=1`;
 
         const response = await fetch(url, {
             headers: { 'User-Agent': 'Moodcast/1.0' },
-            next: { revalidate: 3600 }, // Cache result for 1 hour to reduce API load
+            next: { revalidate: 3600 },
             signal: controller.signal
         });
         clearTimeout(timeoutId);
@@ -120,9 +149,7 @@ async function localizeCityViaNominatim(city: string, country: string, locale: s
         if (response.ok) {
             const data = await response.json();
             if (data && data.length > 0) {
-                const addr = data[0].address;
-                // Try to find the city-level name in the response
-                return addr.city || addr.town || addr.village || addr.county || addr.district || addr.borough || city;
+                return mapNominatimAddress(data[0].address);
             }
         }
     } catch (e) {
@@ -137,9 +164,13 @@ async function localizeCityViaNominatim(city: string, country: string, locale: s
  */
 export async function detectLocationFromGPS(lat: number, lng: number, locale: string = 'ko'): Promise<Partial<MoodcastLocation>> {
     let timezone: string | undefined;
-    let region0 = 'Unknown';
-    let region1 = 'Unknown';
-    let region2 = 'Unknown';
+
+    // Default result
+    let result: Partial<MoodcastLocation> = {
+        region0: 'Unknown',
+        region1: 'Unknown',
+        region2: 'Unknown',
+    };
 
     try {
         // 1. Identify Timezone from Coordinates (Accurate)
@@ -147,6 +178,7 @@ export async function detectLocationFromGPS(lat: number, lng: number, locale: st
         const tzResult = find(lat, lng);
         if (tzResult && tzResult.length > 0) {
             timezone = tzResult[0];
+            result.timezone = timezone;
         }
 
         // 2. Identify Region Name via Nominatim
@@ -161,20 +193,14 @@ export async function detectLocationFromGPS(lat: number, lng: number, locale: st
 
         if (response.ok) {
             const data = await response.json();
-            const address = data.address;
-
-            region0 = address.country || 'Unknown';
-            region1 = address.city || address.province || address.state || 'Unknown';
-            region2 = address.borough || address.suburb || address.district || address.neighbourhood || 'Unknown';
+            if (data.address) {
+                const mapped = mapNominatimAddress(data.address);
+                result = { ...result, ...mapped };
+            }
         }
     } catch (e) {
         console.error('GPS Location Detection Failed:', e);
     }
 
-    return {
-        region0,
-        region1,
-        region2,
-        timezone // defined only if geo-tz succeeded
-    };
+    return result;
 }
