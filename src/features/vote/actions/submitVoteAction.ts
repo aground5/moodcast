@@ -45,20 +45,17 @@ export async function submitVoteAction(
     }
 
     // Always attempt to get Timezone from headers (if GPS didn't provide one)
-    // Or if we want to ensure we have a valid timezone even if GPS failed partially.
-    // The shared lib `detectLocationFromGPS` only returns timezone if geo-tz succeeds.
     if (!timezone || timezone === 'Asia/Seoul') {
-        const headerData = await detectLocationFromHeaders(locale);
-        // If GPS failed to give us a timezone, use the header one
+        const headerData = await detectLocationFromHeaders(locale, { skipLocalization: false });
         if (headerData.timezone && headerData.timezone !== 'Asia/Seoul') {
             timezone = headerData.timezone;
         }
     }
 
     // Strategy B: Header Fallback (Location)
-    // If GPS failed to give us a specific region (still Unknown or just Country), enrich with Headers.
     if (region1 === 'Unknown' || region1 === region0) {
-        const headerData = await detectLocationFromHeaders(locale); // Pass locale here too!
+        // Force localization because we are about to save to DB.
+        const headerData = await detectLocationFromHeaders(locale, { skipLocalization: false });
 
         // If we don't have country, take it from headers
         if (region0 === 'Unknown') region0 = headerData.region0;

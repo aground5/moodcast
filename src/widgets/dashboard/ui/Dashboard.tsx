@@ -14,6 +14,7 @@ import { DataLab } from './DataLab';
 
 export function Dashboard({ initialAnalysis }: { initialAnalysis?: string }) {
     const t = useTranslations('dashboard');
+    const tCommon = useTranslations('common');
     const { gender, mood, region } = useVoteStore();
     const [stats, setStats] = useState<DashboardStats | null>(null);
 
@@ -48,7 +49,12 @@ export function Dashboard({ initialAnalysis }: { initialAnalysis?: string }) {
         };
     }, [region]);
 
-    const regionName = stats?.region || "전국";
+    // Handle "Global" literal from server or missing region
+    const rawRegion = stats?.region;
+    const regionName = (rawRegion === 'Global' || !rawRegion)
+        ? tCommon('world')
+        : rawRegion;
+
     const happinessScore = stats?.score || 0;
     const totalVotes = stats?.total || 0;
 

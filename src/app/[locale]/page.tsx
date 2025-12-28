@@ -95,6 +95,7 @@ export default async function Page() {
         savedGender={savedGender}
         initialVote={initialVote}
         ipRegion={ipRegion}
+        initialCountry={region0} // Pass Country for accurate refinement
         initialAnalysis={initialAnalysis}
     />;
 }

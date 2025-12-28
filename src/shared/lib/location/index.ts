@@ -12,7 +12,18 @@ export type MoodcastLocation = {
  * Detects location and timezone.
  * Priority: MaxMind GeoIP (Local DB) -> Vercel Headers -> Unknown
  */
-export async function detectLocationFromHeaders(locale: string = 'ko'): Promise<MoodcastLocation> {
+/**
+ * Detects location and timezone.
+ * Priority: MaxMind GeoIP (Local DB) -> Vercel Headers -> Unknown
+ * 
+ * @param locale Target locale for localization (e.g. 'ko')
+ * @param options Configuration options
+ * @param options.skipLocalization If true, skips blocking API calls for localization (Nominatim). faster but less accurate names.
+ */
+export async function detectLocationFromHeaders(
+    locale: string = 'ko',
+    options: { skipLocalization?: boolean } = { skipLocalization: true }
+): Promise<MoodcastLocation> {
     const headerStore = await headers();
 
     // 1. Get Client IP
@@ -31,8 +42,6 @@ export async function detectLocationFromHeaders(locale: string = 'ko'): Promise<
         if (geoResult) {
             city = geoResult.city;
             // Immediate Country Localization:
-            // Use Intl.DisplayNames + ISO Code (which is reliable) for instant country localization in ANY locale.
-            // This meets the user's request: "Show at least Country in local language quickly".
             const code = geoResult.countryCode;
             if (code && code !== 'Unknown') {
                 try {
@@ -46,20 +55,19 @@ export async function detectLocationFromHeaders(locale: string = 'ko'): Promise<
             }
             timezone = geoResult.timezone;
 
-            // Localization Fallback (DISABLED FOR PERFORMANCE):
-            // Calling Nominatim on every page load to translate "Seoul" -> "서울" adds significant latency (200ms-1s).
-            // For initial page load, speed is critical. We accept MaxMind's English output for unsupported locales.
-            /*
-            if (!MAXMIND_SUPPORTED_LOCALES.includes(locale) && city !== 'Unknown') {
-                 // Try to resolve "Seodaemun-gu" -> "서대문구"
-                 const localizedCity = await localizeCityViaNominatim(city, country, locale);
-                 if (localizedCity) city = localizedCity;
+            // Localization Fallback (Nominatim)
+            // DISABLED by default for performance on initial load.
+            // ENABLED explicitly when called with skipLocalization: false (e.g. Voting Action)
+            if (!options.skipLocalization && !MAXMIND_SUPPORTED_LOCALES.includes(locale) && city !== 'Unknown') {
+                const localized = await localizeLocationViaNominatim(city, country, locale);
+                if (localized && localized.region1 && localized.region1 !== 'Unknown') {
+                    city = localized.region1;
+                }
             }
-            */
         }
     }
 
-    // 3. Fallback to Vercel Headers if MaxMind missed (e.g. private IP or missing DB data)
+    // 3. Fallback to Vercel Headers if MaxMind missed
     if (city === 'Unknown') {
         const vCity = headerStore.get('x-vercel-ip-city') || headerStore.get('cf-ipcity');
         const vCountry = headerStore.get('x-vercel-ip-country') || headerStore.get('cf-ipcountry');
@@ -69,19 +77,13 @@ export async function detectLocationFromHeaders(locale: string = 'ko'): Promise<
         if (vCountry) country = vCountry;
         if (vTz) timezone = vTz;
 
-        // Apply fallback localization (Nominatim) ONLY if we fell back to Vercel Headers
-        // (Since MaxMind handles localization itself if supported)
-        // Also DISABLED for performance on initial load.
-        /*
-        if (city !== 'Unknown' && locale !== 'en') {
+        // Apply fallback localization (Nominatim) ONLY if enabled
+        if (!options.skipLocalization && city !== 'Unknown' && locale !== 'en') {
             const localized = await localizeLocationViaNominatim(city, country, locale);
             if (localized) {
                 if (localized.region1 && localized.region1 !== 'Unknown') city = localized.region1;
-                // If we had a mechanism to update region2 in this scope, we would. 
-                // But this function returns final object below.
             }
         }
-        */
 
         // Also localize Country code if it came from Vercel
         if (country.length === 2) {
@@ -131,7 +133,7 @@ function mapNominatimAddress(addr: any): Partial<MoodcastLocation> {
  * Helper to localize location using Nominatim Search.
  * Returns structured location data.
  */
-async function localizeLocationViaNominatim(queryCity: string, queryCountry: string, locale: string): Promise<Partial<MoodcastLocation> | null> {
+export async function localizeLocationViaNominatim(queryCity: string, queryCountry: string, locale: string): Promise<Partial<MoodcastLocation> | null> {
     try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 1200); // Slight boost to timeout

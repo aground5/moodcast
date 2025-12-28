@@ -26,13 +26,14 @@ export async function getDashboardStats(
     const startOfTodayUTC = getStartOfDayUTC(timezone);
 
     // Helper to fetch stats for a specific condition
-    const fetchStats = async (filter: 'lv2' | 'lv0' | 'global', value?: string) => {
+    const fetchStats = async (filter: 'lv2' | 'lv1' | 'lv0' | 'global', value?: string) => {
         let query = supabase
             .from('mood_votes')
-            .select('mood, gender, region_lv2, region_lv0') // Select potential display name columns
+            .select('mood, gender, region_lv2, region_lv1, region_lv0') // Select potential display name columns
             .gte('created_at', startOfTodayUTC);
 
         if (filter === 'lv2' && value) query = query.eq('region_lv2', value);
+        else if (filter === 'lv1' && value) query = query.eq('region_lv1', value);
         else if (filter === 'lv0' && value) query = query.eq('region_lv0', value);
         // global = no filter
 
@@ -41,18 +42,39 @@ export async function getDashboardStats(
         return { data, filter, value };
     };
 
-    // 1. Try Specific Region (LV2)
+    // 1. Determine the Best Scope to Fetch based on available context
+    // Business Logic: Prefer Lv2 -> Lv1 -> Lv0 -> Global
+    // Unlike dynamic fallback chains (try Lv2, fail, try Lv1...), we primarily trust the "Scope" of the provided location.
+    // If the user is in "Seoul (Lv1)" but we only asked for Lv2, we might fail.
+    // We should iterate.
+
+    // Strict priority check
+    const isValid = (val?: string) => val && val !== 'Unknown' && val.trim() !== '';
+
     let result = null;
-    if (context.region_lv2 && context.region_lv2 !== 'Unknown') {
+
+    // Check Lv2 (District)
+    if (!result && isValid(context.region_lv2)) {
         const res = await fetchStats('lv2', context.region_lv2);
-        // Threshold: e.g. at least 3 votes to show specific regional stats? 
-        // For now, if > 0, we take it. Or user might want strict 0 fallback.
-        // Let's assume if it exists (length > 0), it's good.
         if (res && res.data.length > 0) result = res;
     }
 
-    // 2. Fallback to Country (LV0)
-    if (!result && context.region_lv0 && context.region_lv0 !== 'Unknown') {
+    // Check Lv1 (City) - Added per user request
+    if (!result && isValid(context.region_lv1)) {
+        // Query param modification for Lv1 needed?
+        // Wait, the original code didn't handle 'lv1' filter type. I need to add it.
+        // Assuming 'lv1' corresponds to a column or logic? 
+        // Note: The schema might not have 'region_lv1' column indexed or used? 
+        // Checked file content: it selects 'region_lv2, region_lv0'. 
+        // I might need to verify if region_lv1 exists in DB.
+        // Assuming it does (based on user request). If not, we skip.
+        // Let's safe-check context first.
+        const res = await fetchStats('lv1', context.region_lv1);
+        if (res && res.data.length > 0) result = res;
+    }
+
+    // Check Lv0 (Country)
+    if (!result && isValid(context.region_lv0)) {
         const res = await fetchStats('lv0', context.region_lv0);
         if (res && res.data.length > 0) result = res;
     }

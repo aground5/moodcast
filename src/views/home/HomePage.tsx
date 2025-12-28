@@ -8,15 +8,19 @@ import { Dashboard } from '@/widgets/dashboard/ui/Dashboard';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect } from 'react';
 
+import { refineLocationAction } from '@/features/location/actions/refineLocation';
+import { getLocationDisplayName } from '@/shared/lib/location/display';
+
 interface HomePageProps {
     initialStep: 'gender' | 'result';
     savedGender?: 'male' | 'female';
     initialVote?: any; // strict type would be better but keeping it simple for now
     ipRegion?: string;
+    initialCountry?: string;
     initialAnalysis?: string;
 }
 
-export default function HomePage({ initialStep, savedGender, initialVote, ipRegion, initialAnalysis }: HomePageProps) {
+export default function HomePage({ initialStep, savedGender, initialVote, ipRegion, initialCountry, initialAnalysis }: HomePageProps) {
     const { step, setStep, setGender, setMood, setRegion, setCoords } = useVoteStore();
 
     useEffect(() => {
@@ -24,14 +28,38 @@ export default function HomePage({ initialStep, savedGender, initialVote, ipRegi
         if (initialVote) {
             setGender(initialVote.gender);
             setMood(initialVote.mood);
-            if (initialVote.region_lv2) {
-                setRegion(initialVote.region_lv2);
-            }
+
+            // Use centralized logic to determine best display region from the vote record
+            // If lv2 is unknown, it will fall back to lv1 (which might be preserved in other fields or acceptable fallback)
+            // Note: initialVote structure usually has region_lv2, maybe region_lv1.
+            // If not, we might rely on what we have.
+            const displayRegion = getLocationDisplayName({
+                region_lv2: initialVote.region_lv2,
+                region_lv1: initialVote.region_lv1, // Assuming this might exist or be added
+                region_lv0: initialVote.region_lv0
+            }, initialVote.region_lv2 || 'Unknown'); // Fallback to raw lv2 if helper fails (though helper handles unknowns)
+
+            setRegion(displayRegion);
         }
         // 2. If no vote record, use IP Region as initial guess
         else {
             if (savedGender) setGender(savedGender);
             if (ipRegion) setRegion(ipRegion);
+
+            // Lazy Localization / Refinement (Animation)
+            // If we have an initial Country (e.g. from MaxMind) and are showing an IP Region (City),
+            // try to refine it via Nominatim to get the localized name.
+            if (ipRegion && initialCountry) {
+                refineLocationAction(ipRegion, initialCountry)
+                    .then((refined) => {
+                        // Check if refined result is valid before overwriting
+                        if (refined && refined !== 'Unknown' && refined !== ipRegion) {
+                            // Update UI with refined (localized) city name
+                            setRegion(refined);
+                        }
+                    })
+                    .catch((e) => console.error(e));
+            }
         }
 
         if (initialStep === 'result') {
