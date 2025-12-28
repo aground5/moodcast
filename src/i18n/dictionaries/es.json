@@ -42,6 +42,7 @@
         "live_update": "Recién actualizado",
         "share_button": "Compartir esta vibra",
         "copy_success": "¡Enlace copiado!",
+        "participants_unit": " vibras",
         "share_text": "¿Qué vibra se respira en {region}? ¡Compárala con la tuya! #MoodCast",
         "datalab": {
             "title": "Laboratorio de Datos",

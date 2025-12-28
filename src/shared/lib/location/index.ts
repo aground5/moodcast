@@ -2,16 +2,17 @@ import { headers } from 'next/headers';
 import { lookupIP, MAXMIND_SUPPORTED_LOCALES } from './geoip';
 
 export type MoodcastLocation = {
-    region0: string; // Country
-    region1: string; // City/State
-    region2: string; // District/Borough
+    region0: string; // Country (Display)
+    region1: string; // City/State (Display)
+    region2: string; // District/Borough (Display)
     timezone: string;
+    std: {
+        region0: string; // Country (English)
+        region1: string; // City/State (English)
+        region2: string; // District/Borough (English)
+    }
 };
 
-/**
- * Detects location and timezone.
- * Priority: MaxMind GeoIP (Local DB) -> Vercel Headers -> Unknown
- */
 /**
  * Detects location and timezone.
  * Priority: MaxMind GeoIP (Local DB) -> Vercel Headers -> Unknown
@@ -37,6 +38,11 @@ export async function detectLocationFromHeaders(
     let region2 = 'Unknown';
     let timezone = 'Asia/Seoul';
 
+    // Standard Names (Default to Unknown)
+    let cityEn = 'Unknown';
+    let countryEn = 'Unknown';
+    let region2En = 'Unknown';
+
     // 2. Try MaxMind GeoIP
     if (ip && ip !== '127.0.0.1' && ip !== '::1') {
         const geoResult = await lookupIP(ip, locale);
@@ -46,10 +52,19 @@ export async function detectLocationFromHeaders(
             // We want Region1=Do/SpecialCity, Region2=District/Si.
             // Result: Region1="Seoul", Region2="Seodaemun-gu"
             if (geoResult.countryCode === 'KR' && geoResult.subdivision) {
+                // Display Names
                 city = geoResult.subdivision;
                 region2 = geoResult.city;
+
+                // Standard Names
+                cityEn = geoResult.std.subdivision || geoResult.std.city; // Fallback to city if subd missing
+                region2En = geoResult.std.city;
             } else {
                 city = geoResult.city;
+                region2 = 'Unknown'; // Default for non-KR
+
+                cityEn = geoResult.std.city;
+                region2En = 'Unknown';
             }
 
             // Immediate Country Localization:
@@ -64,17 +79,20 @@ export async function detectLocationFromHeaders(
             } else {
                 country = geoResult.country;
             }
+            // Standard Country
+            countryEn = geoResult.std.country;
+
             timezone = geoResult.timezone;
 
             // Localization Fallback (Nominatim)
             // DISABLED by default for performance on initial load.
             // ENABLED explicitly when called with skipLocalization: false (e.g. Voting Action)
             if (!options.skipLocalization && !MAXMIND_SUPPORTED_LOCALES.includes(locale) && city !== 'Unknown') {
+                // We only fetch localized here on fallback, standard should be fine from MaxMind usually.
+                // But MaxMind 'std' is already populated.
                 const localized = await localizeLocationViaNominatim(city, country, locale);
                 if (localized) {
                     if (localized.region1 && localized.region1 !== 'Unknown') city = localized.region1;
-                    // Also attempt to capture region2 if Nominatim found a more granular component
-                    // (e.g. if input city was actually a district like "Gangnam-gu")
                     if (localized.region2 && localized.region2 !== 'Unknown') region2 = localized.region2;
                 }
             }
@@ -87,8 +105,14 @@ export async function detectLocationFromHeaders(
         const vCountry = headerStore.get('x-vercel-ip-country') || headerStore.get('cf-ipcountry');
         const vTz = headerStore.get('x-vercel-ip-timezone') || headerStore.get('cf-timezone');
 
-        if (vCity) city = vCity;
-        if (vCountry) country = vCountry;
+        if (vCity) {
+            city = vCity;
+            cityEn = vCity; // Vercel headers are usually ASCII/English
+        }
+        if (vCountry) {
+            country = vCountry;
+            countryEn = vCountry;
+        }
         if (vTz) timezone = vTz;
 
         // Apply fallback localization (Nominatim) ONLY if enabled
@@ -105,15 +129,24 @@ export async function detectLocationFromHeaders(
             try {
                 const regionNames = new Intl.DisplayNames([locale], { type: 'region' });
                 country = regionNames.of(country) || country;
+                // Standard Country is likely the code or name from Vercel, keep as is (Code is fine for standard? No, User wanted name)
+                // If it's code, let's try to get English name? 
+                const regionNamesEn = new Intl.DisplayNames(['en'], { type: 'region' });
+                countryEn = regionNamesEn.of(countryEn) || countryEn;
             } catch (e) { }
         }
     }
 
     return {
         region0: country,
-        region1: city !== 'Unknown' ? city : country, // Fallback to country if city unknown
-        region2: region2 !== 'Unknown' ? region2 : clickToRegion2(city), // Use detected region2, fallback to heuristic
-        timezone
+        region1: city !== 'Unknown' ? city : country,
+        region2: region2 !== 'Unknown' ? region2 : clickToRegion2(city),
+        timezone,
+        std: {
+            region0: countryEn,
+            region1: cityEn !== 'Unknown' ? cityEn : countryEn,
+            region2: region2En !== 'Unknown' ? region2En : clickToRegion2(cityEn)
+        }
     };
 }
 
@@ -189,6 +222,12 @@ export async function detectLocationFromGPS(lat: number, lng: number, locale: st
         region2: 'Unknown',
     };
 
+    let std: { region0: string; region1: string; region2: string } = {
+        region0: 'Unknown',
+        region1: 'Unknown',
+        region2: 'Unknown'
+    };
+
     try {
         // 1. Identify Timezone from Coordinates (Accurate)
         const { find } = await import('geo-tz');
@@ -198,18 +237,33 @@ export async function detectLocationFromGPS(lat: number, lng: number, locale: st
             result.timezone = timezone;
         }
 
-        // 2. Identify Region Name via Nominatim
-        // Use shared refactored function
+        // 2. Identify Region Name via Nominatim (Dual Fetch: Localized + English)
         const { fetchReverseGeocodeRaw } = await import('./geocoding');
-        const address = await fetchReverseGeocodeRaw(lat, lng, locale);
 
-        if (address) {
-            const mapped = mapNominatimAddress(address);
+        // Fetch in parallel for simple implementation
+        const [addressEncoded, addressEn] = await Promise.all([
+            fetchReverseGeocodeRaw(lat, lng, locale), // User Locale
+            fetchReverseGeocodeRaw(lat, lng, 'en')    // Standard English
+        ]);
+
+        if (addressEncoded) {
+            const mapped = mapNominatimAddress(addressEncoded);
             result = { ...result, ...mapped };
         }
+
+        if (addressEn) {
+            const mappedStandard = mapNominatimAddress(addressEn);
+            std = {
+                region0: mappedStandard.region0 || 'Unknown',
+                region1: mappedStandard.region1 || 'Unknown',
+                region2: mappedStandard.region2 || 'Unknown'
+            };
+        }
+
     } catch (e) {
         console.error('GPS Location Detection Failed:', e);
     }
 
-    return result;
+    // Append std object to result (Partially)
+    return { ...result, std };
 }

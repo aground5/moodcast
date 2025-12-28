@@ -31,7 +31,7 @@ export function MoodSelector() {
         try {
             const result = await submitVote(gender, mood, coords || undefined);
             if (result.region) {
-                setRegion(result.region);
+                setRegion(result.region, result.region_std);
             }
             setStep('result');
         } catch (e) {

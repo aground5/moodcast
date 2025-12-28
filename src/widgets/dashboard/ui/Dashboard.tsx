@@ -5,7 +5,7 @@ import { Card } from '@/shared/ui/Card';
 import { FadeIn, ScaleIn } from '@/shared/ui/MotionWrapper';
 import { useMemo, useEffect, useState } from 'react';
 import { getDashboardStats, DashboardStats } from '../actions/getDashboardStats';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { useAnalysis } from '../lib/useAnalysis';
 import { createClient } from '@/shared/lib/supabase/client';
 
@@ -15,7 +15,18 @@ import { DataLab } from './DataLab';
 export function Dashboard({ initialAnalysis, initialStats }: { initialAnalysis?: string, initialStats?: DashboardStats | null }) {
     const t = useTranslations('dashboard');
     const tCommon = useTranslations('common');
-    const { gender, mood, region } = useVoteStore();
+    const locale = useLocale();
+    const { gender, mood, region, region_std } = useVoteStore();
+
+    // Typography Logic
+    const isCJK = ['ja', 'zh'].includes(locale);
+    const isKorean = locale === 'ko';
+
+    const typographyClass = isCJK
+        ? 'break-all leading-[1.6]' // JA, ZH: Break anywhere, relaxed line height
+        : isKorean
+            ? 'break-keep leading-relaxed' // KO: Keep words together, relaxed
+            : 'break-words leading-tight'; // Western: Standard wrapping
     // Initialize with server data if available to prevent "Global" flash
     const [stats, setStats] = useState<DashboardStats | null>(initialStats || null);
 
@@ -51,7 +62,11 @@ export function Dashboard({ initialAnalysis, initialStats }: { initialAnalysis?:
 
         // Realtime Subscription
         const supabase = createClient();
-        const channelName = region ? `mood-updates:${region}` : `mood-updates:Global`;
+
+        // Use Standard English Region for shared channel
+        const activeStdRegion = region_std || initialStats?.region_std || 'Global';
+
+        const channelName = `mood-updates:${activeStdRegion}`;
 
         const channel = supabase.channel(channelName)
             .on('broadcast', { event: 'stats-update' }, (payload) => {
@@ -65,7 +80,7 @@ export function Dashboard({ initialAnalysis, initialStats }: { initialAnalysis?:
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [region]);
+    }, [region, region_std, initialStats]);
 
     // Handle "Global" literal from server or missing region
     const rawRegion = stats?.region;
@@ -132,12 +147,13 @@ export function Dashboard({ initialAnalysis, initialStats }: { initialAnalysis?:
             <FadeIn delay={0.2} className="w-full">
                 <div className="py-6 px-4 text-center relative flex flex-col items-center gap-4">
                     <span className="absolute top-0 left-2 text-3xl text-gray-200 font-serif leading-none">“</span>
-                    <p className="text-xl md:text-2xl text-gray-800 font-bold leading-relaxed break-keep font-serif px-2">
+                    <p className={`text-xl md:text-2xl text-gray-800 font-bold font-serif px-2 whitespace-pre-wrap ${typographyClass}`}>
                         {analysis}
                     </p>
                     <span className="absolute bottom-0 right-2 text-3xl text-gray-200 font-serif leading-none">”</span>
                 </div>
             </FadeIn>
+
 
             {/* Section 3: Regional Vibe (Quiet Ticker) */}
             <FadeIn delay={0.6} className="w-full">
@@ -151,7 +167,7 @@ export function Dashboard({ initialAnalysis, initialStats }: { initialAnalysis?:
                         <span className="w-1 h-1 rounded-full bg-gray-300" />
                         <span className={scoreColor}>{happinessScore}%</span>
                         <span className="w-1 h-1 rounded-full bg-gray-300" />
-                        <span>{totalVotes.toLocaleString()}명</span>
+                        <span>{totalVotes.toLocaleString()}{t('participants_unit')}</span>
 
                         {/* Live Dot (Subtle) */}
                         <span className="relative flex h-1.5 w-1.5 ml-1">

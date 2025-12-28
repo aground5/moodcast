@@ -7,6 +7,7 @@ type VoteResult = {
     success: boolean;
     error?: string;
     region?: string;
+    region_std?: string;
 };
 
 export async function submitVoteAction(
@@ -25,6 +26,12 @@ export async function submitVoteAction(
     let region0 = 'Unknown';
     let region1 = 'Unknown';
     let region2 = 'Unknown';
+
+    // Standard Names
+    let region0En = 'Unknown';
+    let region1En = 'Unknown';
+    let region2En = 'Unknown';
+
     let lat = coords?.lat;
     let lng = coords?.lng;
     let timezone = 'Asia/Seoul'; // Default
@@ -42,6 +49,13 @@ export async function submitVoteAction(
         if (gpsData.region1) region1 = gpsData.region1;
         if (gpsData.region2) region2 = gpsData.region2;
         if (gpsData.timezone) timezone = gpsData.timezone;
+
+        // Capture Standard Data if available
+        if (gpsData.std) {
+            region0En = gpsData.std.region0;
+            region1En = gpsData.std.region1;
+            region2En = gpsData.std.region2;
+        }
     }
 
     // Strategy B: Header Fallback & Timezone (Unified)
@@ -76,6 +90,14 @@ export async function submitVoteAction(
         } else if (headerData.region0 !== 'Unknown') {
             // Header only has country
             if (region1 === 'Unknown') region1 = headerData.region0;
+        }
+
+        // Capture Standard Data from Header Fallback
+        // Only if we are using header data for location
+        if (headerData.std) {
+            region0En = headerData.std.region0;
+            region1En = headerData.std.region1;
+            region2En = headerData.std.region2;
         }
     }
 
@@ -140,6 +162,10 @@ export async function submitVoteAction(
         region_lv0: region0,
         region_lv1: region1,
         region_lv2: region2,
+        // Standardized English Names
+        region_std_lv0: region0En,
+        region_std_lv1: region1En,
+        region_std_lv2: region2En,
         ip_hash: 'server-action',
         analysis_text, // Persist the generated text
     });
@@ -172,10 +198,12 @@ export async function submitVoteAction(
         const { broadcastVote } = await import('../api/broadcastVote');
         // Fire and forget-ish, or await. Awaiting adds latency to the user's "Vote" action.
         // But Server Actions must succeed. Let's await to be safe for now, can optimize later.
+
+        // Broadcast using Standard English Names (User Request: "Live also needs to be std")
         await broadcastVote({
-            region_lv2: region2 !== 'Unknown' ? region2 : undefined,
-            region_lv1: region1 !== 'Unknown' ? region1 : undefined,
-            region_lv0: region0 !== 'Unknown' ? region0 : undefined,
+            region_lv2: region2En !== 'Unknown' ? region2En : undefined,
+            region_lv1: region1En !== 'Unknown' ? region1En : undefined,
+            region_lv0: region0En !== 'Unknown' ? region0En : undefined,
         }, timezone);
     } catch (e) {
         console.error("Broadcast failed:", e);
@@ -184,6 +212,7 @@ export async function submitVoteAction(
 
     return {
         success: true,
-        region: region2 !== 'Unknown' ? region2 : region1
+        region: region2 !== 'Unknown' ? region2 : region1, // Display Name
+        region_std: region2En !== 'Unknown' ? region2En : region1En // Standard Name
     };
 }

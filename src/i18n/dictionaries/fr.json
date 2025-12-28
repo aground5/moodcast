@@ -42,6 +42,7 @@
         "live_update": "Mis à jour à l'instant",
         "share_button": "Partager cette ambiance",
         "copy_success": "Lien copié !",
+        "participants_unit": " ondes",
         "share_text": "Quelle est l'ambiance à {region} ? Comparez-la avec votre humeur ! #MoodCast",
         "datalab": {
             "title": "Labo de Données",

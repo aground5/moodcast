@@ -42,6 +42,7 @@
         "live_update": "Только что обновлено",
         "share_button": "Поделиться этим вайбом",
         "copy_success": "Ссылка скопирована.",
+        "participants_unit": " чел.",
         "share_text": "Какой вайб сейчас в {region}? Сравни со своим настроением. #MoodCast",
         "datalab": {
             "title": "Лаборатория данных",

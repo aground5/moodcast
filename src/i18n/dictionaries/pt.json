@@ -42,6 +42,7 @@
         "live_update": "Atualizado agora",
         "share_button": "Compartilhar esta vibe",
         "copy_success": "Link copiado!",
+        "participants_unit": " vibes",
         "share_text": "Qual é a vibe de {region} agora? Sincronize com a sua! #MoodCast",
         "datalab": {
             "title": "Laboratório de Dados",
