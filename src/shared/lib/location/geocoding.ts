@@ -18,13 +18,34 @@ export async function fetchReverseGeocodeRaw(lat: number, lng: number, locale: s
     }
 }
 
-export async function reverseGeocode(lat: number, lng: number, locale: string = 'ko'): Promise<string | null> {
-    const address = await fetchReverseGeocodeRaw(lat, lng, locale);
-    if (!address) return null;
+export interface ReverseGeocodeResult {
+    localized: string | null;
+    std: string | null;
+}
 
-    // Same logic as server-side
-    const region1 = address.city || address.province || address.state;
-    const region2 = address.borough || address.suburb || address.district || address.neighbourhood;
+export async function reverseGeocode(lat: number, lng: number, locale: string = 'ko'): Promise<ReverseGeocodeResult | null> {
+    const [addressEncoded, addressEn] = await Promise.all([
+        fetchReverseGeocodeRaw(lat, lng, locale),
+        fetchReverseGeocodeRaw(lat, lng, 'en')
+    ]);
 
-    return region2 || region1 || null;
+    if (!addressEncoded && !addressEn) return null;
+
+    // Localized Name
+    let localized = null;
+    if (addressEncoded) {
+        const region1 = addressEncoded.city || addressEncoded.province || addressEncoded.state;
+        const region2 = addressEncoded.borough || addressEncoded.suburb || addressEncoded.district || addressEncoded.neighbourhood;
+        localized = region2 || region1 || null;
+    }
+
+    // Standard Name
+    let std = null;
+    if (addressEn) {
+        const region1 = addressEn.city || addressEn.province || addressEn.state;
+        const region2 = addressEn.borough || addressEn.suburb || addressEn.district || addressEn.neighbourhood;
+        std = region2 || region1 || null;
+    }
+
+    return { localized, std };
 }

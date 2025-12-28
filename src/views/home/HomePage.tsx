@@ -17,15 +17,17 @@ interface HomePageProps {
     savedGender?: 'male' | 'female';
     initialVote?: any;
     ipRegion?: string;
+    ipRegionStd?: string; // Standard English Region (Country)
     initialCountry?: string;
-    initialCity?: string; // New prop for refinement source (e.g. English City)
+    initialCity?: string; // Localized City for Refinement
+    initialCityStd?: string; // Standard City
     initialAnalysis?: string;
     initialStats?: any; // DashboardStats
 }
 
 import { useTranslations, useLocale } from 'next-intl';
 
-export default function HomePage({ initialStep, savedGender, initialVote, ipRegion, initialCountry, initialCity, initialAnalysis, initialStats }: HomePageProps) {
+export default function HomePage({ initialStep, savedGender, initialVote, ipRegion, ipRegionStd, initialCountry, initialCity, initialCityStd, initialAnalysis, initialStats }: HomePageProps) {
     const t = useTranslations('dashboard'); // Assuming we need translations? Or just for locale.
     const locale = useLocale();
     const { step, setStep, setGender, setMood, setRegion, setCoords } = useVoteStore();
@@ -40,24 +42,23 @@ export default function HomePage({ initialStep, savedGender, initialVote, ipRegi
                 region_lv1: initialVote.region_lv1,
                 region_lv0: initialVote.region_lv0
             }, initialVote.region_lv2 || 'Unknown');
-            setRegion(displayRegion);
+
+            // Extract standard region from initialVote if available
+            // Note: DB columns are region_std_lv*
+            // Logic: prefer lv2 -> lv1 -> lv0
+            const stdRegion = initialVote.region_std_lv2 || initialVote.region_std_lv1 || initialVote.region_std_lv0;
+            setRegion(displayRegion, stdRegion);
         }
         else {
             if (savedGender) setGender(savedGender);
-            if (ipRegion) setRegion(ipRegion);
+            if (ipRegion) setRegion(ipRegion, ipRegionStd);
 
             // Refine with IP (Start immediately)
             if (initialCity && initialCountry) {
                 refineLocationAction(initialCity, initialCountry)
                     .then((refined) => {
-                        // Only update if we DON'T have a GPS fix yet (coords not set)
-                        // This prevents IP overwriting GPS if GPS resolved faster
-                        // Actually, we can check a ref or just see if Coords are null?
-                        // Ideally we want GPS to win. 
-                        // For now, let's just update. If GPS comes later, it will overwrite.
-                        // Usage of useRef to track 'isGpsActive' would be better but let's keep it simple first.
-                        if (refined && refined !== 'Unknown') {
-                            setRegion(refined);
+                        if (refined && refined.localized && refined.localized !== 'Unknown') {
+                            setRegion(refined.localized, refined.std || ipRegionStd);
                         }
                     })
                     .catch((e) => console.error(e));
@@ -87,8 +88,8 @@ export default function HomePage({ initialStep, savedGender, initialVote, ipRegi
                         if (!initialVote) {
                             const { reverseGeocode } = await import('@/shared/lib/location/geocoding');
                             const refinedRegion = await reverseGeocode(lat, lng, locale);
-                            if (refinedRegion) {
-                                setRegion(refinedRegion);
+                            if (refinedRegion && refinedRegion.localized) {
+                                setRegion(refinedRegion.localized, refinedRegion.std || undefined);
                             }
                         }
                     },

@@ -201,9 +201,9 @@ export async function submitVoteAction(
 
         // Broadcast using Standard English Names (User Request: "Live also needs to be std")
         await broadcastVote({
-            region_lv2: region2En !== 'Unknown' ? region2En : undefined,
-            region_lv1: region1En !== 'Unknown' ? region1En : undefined,
-            region_lv0: region0En !== 'Unknown' ? region0En : undefined,
+            region_std_lv2: region2En !== 'Unknown' ? region2En : undefined,
+            region_std_lv1: region1En !== 'Unknown' ? region1En : undefined,
+            region_std_lv0: region0En !== 'Unknown' ? region0En : undefined,
         }, timezone);
     } catch (e) {
         console.error("Broadcast failed:", e);

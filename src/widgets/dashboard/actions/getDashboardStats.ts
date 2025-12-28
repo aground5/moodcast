@@ -20,42 +20,41 @@ export interface DashboardStats {
 import { getStartOfDayUTC } from '@/shared/lib/date/timezone';
 
 export async function getDashboardStats(
-    context: { region_lv2?: string; region_lv0?: string; region_lv1?: string } = {},
+    context: {
+        region_lv2?: string; region_lv0?: string; region_lv1?: string;
+        region_std_lv2?: string; region_std_lv0?: string; region_std_lv1?: string;
+    } = {},
     timezone: string = 'Asia/Seoul'
 ): Promise<DashboardStats> {
     const supabase = createAdminClient();
     const startOfTodayUTC = getStartOfDayUTC(timezone);
 
-    // Helper to fetch stats for a specific condition
-    const fetchStats = async (filter: 'lv2' | 'lv1' | 'lv0' | 'global', value?: string) => {
+    // Helper to fetch stats
+    // value = Localized (for display preference)
+    // valueStd = Standard (for query preference)
+    const fetchStats = async (filter: 'lv2' | 'lv1' | 'lv0' | 'global', value?: string, valueStd?: string) => {
         let query = supabase
             .from('mood_votes')
-            .select('mood, gender, region_lv2, region_lv1, region_lv0, region_std_lv2, region_std_lv1, region_std_lv0') // Select std columns
+            .select('mood, gender, region_lv2, region_lv1, region_lv0, region_std_lv2, region_std_lv1, region_std_lv0')
             .gte('created_at', startOfTodayUTC);
 
-        if (filter === 'lv2' && value) {
-            // Check both localized and standard columns
-            query = query.or(`region_lv2.eq.${value},region_std_lv2.eq.${value}`);
+        if (filter === 'lv2') {
+            if (valueStd) query = query.eq('region_std_lv2', valueStd);
+            else if (value) query = query.or(`region_lv2.eq.${value},region_std_lv2.eq.${value}`);
         }
-        else if (filter === 'lv1' && value) {
-            query = query.or(`region_lv1.eq.${value},region_std_lv1.eq.${value}`);
+        else if (filter === 'lv1') {
+            if (valueStd) query = query.eq('region_std_lv1', valueStd);
+            else if (value) query = query.or(`region_lv1.eq.${value},region_std_lv1.eq.${value}`);
         }
-        else if (filter === 'lv0' && value) {
-            query = query.or(`region_lv0.eq.${value},region_std_lv0.eq.${value}`);
+        else if (filter === 'lv0') {
+            if (valueStd) query = query.eq('region_std_lv0', valueStd);
+            else if (value) query = query.or(`region_lv0.eq.${value},region_std_lv0.eq.${value}`);
         }
-        // global = no filter
 
         const { data, error } = await query;
         if (error || !data) return null;
-        return { data, filter, value };
+        return { data, filter, value, valueStd };
     };
-
-    // ... (Priority Logic unchanged) ...
-    // 1. Determine the Best Scope to Fetch based on available context
-    // Business Logic: Prefer Lv2 -> Lv1 -> Lv0 -> Global
-    // Unlike dynamic fallback chains (try Lv2, fail, try Lv1...), we primarily trust the "Scope" of the provided location.
-    // If the user is in "Seoul (Lv1)" but we only asked for Lv2, we might fail.
-    // We should iterate.
 
     // Strict priority check
     const isValid = (val?: string) => val && val !== 'Unknown' && val.trim() !== '';
@@ -63,20 +62,20 @@ export async function getDashboardStats(
     let result = null;
 
     // Check Lv2 (District)
-    if (!result && isValid(context.region_lv2)) {
-        const res = await fetchStats('lv2', context.region_lv2);
+    if (!result && (isValid(context.region_lv2) || isValid(context.region_std_lv2))) {
+        const res = await fetchStats('lv2', context.region_lv2, context.region_std_lv2);
         if (res && res.data.length > 0) result = res;
     }
 
     // Check Lv1 (City)
-    if (!result && isValid(context.region_lv1)) {
-        const res = await fetchStats('lv1', context.region_lv1);
+    if (!result && (isValid(context.region_lv1) || isValid(context.region_std_lv1))) {
+        const res = await fetchStats('lv1', context.region_lv1, context.region_std_lv1);
         if (res && res.data.length > 0) result = res;
     }
 
     // Check Lv0 (Country)
-    if (!result && isValid(context.region_lv0)) {
-        const res = await fetchStats('lv0', context.region_lv0);
+    if (!result && (isValid(context.region_lv0) || isValid(context.region_std_lv0))) {
+        const res = await fetchStats('lv0', context.region_lv0, context.region_std_lv0);
         if (res && res.data.length > 0) result = res;
     }
 
@@ -86,15 +85,15 @@ export async function getDashboardStats(
     }
 
     const votes = result?.data || [];
-    const regionLabel = result?.filter === 'lv2' ? result.value :
-        result?.filter === 'lv1' ? result.value :
-            result?.filter === 'lv0' ? result.value : 'Global';
+    // Prefer Localized Value for Display, Fallback to Std
+    const regionLabel = result?.filter && result.filter !== 'global'
+        ? (result.value || result.valueStd || 'Global')
+        : 'Global';
 
-    // Extract Standard Region Label
-    // If we have data, we can take the standard name from the first row that matches the level.
-    // Note: If different standard names exist for same localized name (unlikely but possible), this takes one.
+    // Extract Standard Region Label (From DB or Input)
     let regionStd = 'Global';
-    if (votes.length > 0) {
+    if (result?.valueStd) regionStd = result.valueStd; // Trust input std if valid
+    else if (votes.length > 0) {
         const first = votes[0];
         if (result?.filter === 'lv2') regionStd = first.region_std_lv2 || 'Global';
         else if (result?.filter === 'lv1') regionStd = first.region_std_lv1 || 'Global';

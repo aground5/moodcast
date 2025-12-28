@@ -69,10 +69,21 @@ export function Dashboard({ initialAnalysis, initialStats }: { initialAnalysis?:
         const channelName = `mood-updates:${activeStdRegion}`;
 
         const channel = supabase.channel(channelName)
-            .on('broadcast', { event: 'stats-update' }, (payload) => {
+            .on('broadcast', { event: 'stats-update' }, (event) => {
+                const payload = event.payload as DashboardStats;
                 console.log('Realtime Update:', payload);
-                if (payload.payload) {
-                    setStats(payload.payload as DashboardStats);
+                if (payload) {
+                    setStats((prev) => {
+                        // Preserve existing localized region name (User Request)
+                        if (prev) {
+                            return {
+                                ...payload,
+                                region: prev.region,
+                                region_std: prev.region_std // Ensure consistency
+                            };
+                        }
+                        return payload;
+                    });
                 }
             })
             .subscribe();

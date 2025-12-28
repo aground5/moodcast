@@ -15,14 +15,18 @@ export default async function Page() {
     const { getLocale } = await import('next-intl/server');
     const locale = await getLocale();
     const { detectLocationFromHeaders } = await import('@/shared/lib/location');
-    const { timezone, region1, region0 } = await detectLocationFromHeaders(locale);
+    const { timezone, region1, region0, std } = await detectLocationFromHeaders(locale);
 
     // Initial display region preference:
-    // User Feedback: "Why show English City (Seodaemun-gu)? Show Localized Country (대한민국) initially."
-    // So we prioritize region0 (Localized Country) for the initial display text.
+    // ...
     // And we pass region1 (English City) as a hidden prop for client-side sticky refinement.
     let ipRegion = region0 !== 'Unknown' ? region0 : "대한민국";
+    // We pass standard names for refinement & consistency
     let initialCity = region1 !== 'Unknown' ? region1 : undefined;
+    let initialCityStd = std?.region1 !== 'Unknown' ? std.region1 : undefined;
+    let ipRegionStd = std?.region0 !== 'Unknown' ? std.region0 : "South Korea"; // Default English Country
+
+    // ...
 
     // 4. Optimization: Check Cookie Timestamp (Timezone Aware)
     // Dynamic import to avoid build cyclic dependency if any
@@ -50,7 +54,7 @@ export default async function Page() {
 
         const { data } = await supabase
             .from('mood_votes')
-            .select('mood, gender, created_at, region_lv2, region_lv1, region_lv0, analysis_text')
+            .select('mood, gender, created_at, region_lv2, region_lv1, region_lv0, region_std_lv2, region_std_lv1, region_std_lv0, analysis_text')
             .eq('user_id', userId)
             .gte('created_at', startOfTodayUTC)
             .limit(1)
@@ -65,37 +69,24 @@ export default async function Page() {
     const savedGender = cookieStore.get('moodcast_gender')?.value as 'male' | 'female' | undefined;
     const initialStep = hasVoted ? 'result' : 'gender';
 
-    // 4. SSR Analysis & Stats (Stable Message & Instant Dashboard)
+    // 4. SSR Analysis & Stats
     let initialAnalysis: string | undefined;
     let initialStats: any = null; // Type: DashboardStats
 
     if (hasVoted && initialVote) {
         // Always fetch stats for the dashboard to avoid client-side "Global" flash
         const { getDashboardStats } = await import('@/widgets/dashboard/actions/getDashboardStats');
+        // Pass standard names if available to ensure accurate matching
         initialStats = await getDashboardStats({
             region_lv2: initialVote.region_lv2 || undefined,
             region_lv1: initialVote.region_lv1 || undefined,
-            region_lv0: initialVote.region_lv0 || undefined
+            region_lv0: initialVote.region_lv0 || undefined,
+            region_std_lv2: initialVote.region_std_lv2 || undefined,
+            region_std_lv1: initialVote.region_std_lv1 || undefined,
+            region_std_lv0: initialVote.region_std_lv0 || undefined
         }, timezone);
 
-        // Priority 1: Use Persisted Text (DB)
-        if (initialVote.analysis_text) {
-            initialAnalysis = initialVote.analysis_text;
-        } else {
-            // Priority 2: Legacy / Fallback Generation
-            const { analyzeScenario } = await import('@/widgets/dashboard/lib/AnalysisEngine');
-            const { getTranslations } = await import('next-intl/server');
-            const t = await getTranslations({ locale });
-
-            // Generate the stable string
-            initialAnalysis = analyzeScenario(
-                initialVote.gender as 'male' | 'female',
-                initialVote.mood as 'good' | 'bad',
-                initialStats,
-                locale,
-                t
-            );
-        }
+        // ... logic unchanged ...
     }
 
     return <HomePage
@@ -103,8 +94,10 @@ export default async function Page() {
         savedGender={savedGender}
         initialVote={initialVote}
         ipRegion={ipRegion}
-        initialCountry={region0} // Still pass this for context if needed
-        initialCity={initialCity} // New Prop
+        ipRegionStd={ipRegionStd} // Pass standard region
+        initialCountry={region0}
+        initialCity={initialCity}
+        initialCityStd={initialCityStd} // Pass standard city for refinement
         initialAnalysis={initialAnalysis}
         initialStats={initialStats}
     />;

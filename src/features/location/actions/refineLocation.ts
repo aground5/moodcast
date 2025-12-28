@@ -5,14 +5,25 @@ import { localizeLocationViaNominatim } from '@/shared/lib/location';
 
 export async function refineLocationAction(city: string, country: string) {
     const locale = await getLocale();
-    const result = await localizeLocationViaNominatim(city, country, locale);
 
-    // Return the best available localized name.
-    // If Nominatim found a District (region2), return that.
-    // If not, return City (region1).
+    // Fetch Localized and Standard English names in parallel
+    const [result, resultEn] = await Promise.all([
+        localizeLocationViaNominatim(city, country, locale),
+        localizeLocationViaNominatim(city, country, 'en')
+    ]);
+
+    let localized = null;
     if (result) {
-        if (result.region2 && result.region2 !== 'Unknown') return result.region2;
-        if (result.region1 && result.region1 !== 'Unknown') return result.region1;
+        // Prefer District (region2) -> City (region1)
+        if (result.region2 && result.region2 !== 'Unknown') localized = result.region2;
+        else if (result.region1 && result.region1 !== 'Unknown') localized = result.region1;
     }
-    return null;
+
+    let std = null;
+    if (resultEn) {
+        if (resultEn.region2 && resultEn.region2 !== 'Unknown') std = resultEn.region2;
+        else if (resultEn.region1 && resultEn.region1 !== 'Unknown') std = resultEn.region1;
+    }
+
+    return { localized, std };
 }
