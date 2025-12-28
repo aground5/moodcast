@@ -12,32 +12,36 @@ export default async function Page() {
     let initialVote = null;
 
     // 3. IP Location & Timezone (for initial display)
-    let ipRegion = "대한민국"; // Default
-    let timezone = 'Asia/Seoul'; // Default
+    const { getLocale } = await import('next-intl/server');
+    const locale = await getLocale();
+    const { detectLocationFromHeaders } = await import('@/shared/lib/location');
+    const { timezone, region1, region0 } = await detectLocationFromHeaders(locale);
 
-    const headerStore = await headers();
-    const city = headerStore.get('x-vercel-ip-city') || headerStore.get('cf-ipcity');
-    const country = headerStore.get('x-vercel-ip-country') || headerStore.get('cf-ipcountry');
-    const tzHeader = headerStore.get('x-vercel-ip-timezone') || headerStore.get('cf-timezone');
+    // Initial display region preference: City -> Country -> Korea
+    let ipRegion = region1 !== 'Unknown' ? region1 : (region0 !== 'Unknown' ? region0 : "대한민국");
 
-    if (city) ipRegion = city;
-    else if (country) ipRegion = country;
-
-    if (tzHeader) timezone = tzHeader;
-
-    // 1. Optimization: Check Cookie Timestamp first
-    // (Note: Cookie logic might need to be timezone aware too, but let's assume cookie expiry handles "24h" naturally?
-    // No, logic was "is it today?". 
-    // We should parse the cookie timestamp in the USER'S timezone to see if it matches "today".
-    // For now, let's rely on DB truth for strictness.)
-
+    // 4. Optimization: Check Cookie Timestamp (Timezone Aware)
     // Dynamic import to avoid build cyclic dependency if any
     const { getStartOfDayUTC } = await import('@/shared/lib/date/timezone');
     const startOfTodayUTC = getStartOfDayUTC(timezone);
 
+    // If the cookie indicates the last vote was BEFORE "Start of Today (in User TZ)",
+    // we can safely assume they haven't voted today without querying the DB.
+    let shouldFetchDB = true;
+    const lastVotedAt = cookieStore.get('moodcast_last_voted_at')?.value;
+
+    if (userId && lastVotedAt) {
+        const lastVotedDate = new Date(lastVotedAt);
+        const startOfTodayDate = new Date(startOfTodayUTC);
+
+        // If last vote was older than today's start
+        if (lastVotedDate < startOfTodayDate) {
+            shouldFetchDB = false;
+        }
+    }
+
     // 2. DB Check / Fetch
-    // We need the details (mood, gender) anyway for the Dashboard.
-    if (userId) {
+    if (userId && shouldFetchDB) {
         const supabase = createAdminClient();
 
         const { data } = await supabase

@@ -29,77 +29,55 @@ export async function submitVoteAction(
     let lng = coords?.lng;
     let timezone = 'Asia/Seoul'; // Default
 
+    // Get Locale for robust/universal name resolution (e.g. "Seodaemun-gu" -> "서대문구" if ki)
+    const { getLocale } = await import('next-intl/server');
+    const locale = await getLocale();
+
+    const { detectLocationFromGPS, detectLocationFromHeaders } = await import('@/shared/lib/location');
+
     // Strategy A: GPS / Nominatim (if coords provided)
     if (lat && lng) {
-        try {
-            // 1. Identify Timezone from Coordinates (Accurate)
-            const { find } = await import('geo-tz');
-            const tzResult = find(lat, lng);
-            if (tzResult && tzResult.length > 0) {
-                timezone = tzResult[0];
-            }
+        const gpsData = await detectLocationFromGPS(lat, lng, locale);
+        if (gpsData.region0) region0 = gpsData.region0;
+        if (gpsData.region1) region1 = gpsData.region1;
+        if (gpsData.region2) region2 = gpsData.region2;
+        if (gpsData.timezone) timezone = gpsData.timezone;
+    }
 
-            // 2. Identify Region Name
-            const response = await fetch(
-                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`,
-                {
-                    headers: {
-                        'User-Agent': 'Moodcast/1.0',
-                    },
-                }
-            );
-            if (response.ok) {
-                const data = await response.json();
-                const address = data.address;
-
-                region0 = address.country || 'Unknown';
-                region1 = address.city || address.province || address.state || 'Unknown';
-                region2 = address.borough || address.suburb || address.district || address.neighbourhood || 'Unknown';
-            }
-        } catch (e) {
-            console.error('Geo Lookup Failed:', e);
+    // Always attempt to get Timezone from headers (if GPS didn't provide one)
+    // Or if we want to ensure we have a valid timezone even if GPS failed partially.
+    // The shared lib `detectLocationFromGPS` only returns timezone if geo-tz succeeds.
+    if (!timezone || timezone === 'Asia/Seoul') {
+        const headerData = await detectLocationFromHeaders(locale);
+        // If GPS failed to give us a timezone, use the header one
+        if (headerData.timezone && headerData.timezone !== 'Asia/Seoul') {
+            timezone = headerData.timezone;
         }
-    } else {
-        // Fallback: If no GPS, try to get Timezone from IP Headers
-        const headerStore = await headers();
-        const tzHeader = headerStore.get('x-vercel-ip-timezone') || headerStore.get('cf-timezone');
-        if (tzHeader) timezone = tzHeader;
     }
 
     // Strategy B: Header Fallback (Location)
-    // Runs if:
-    // 1. No GPS provided (Strategy A didn't run for location)
-    // 2. GPS provided but Nominatim failed/returned insufficient data (region1 unknown/country-level)
+    // If GPS failed to give us a specific region (still Unknown or just Country), enrich with Headers.
     if (region1 === 'Unknown' || region1 === region0) {
-        const headerStore = await headers();
-        const city = headerStore.get('x-vercel-ip-city') || headerStore.get('cf-ipcity');
-        const country = headerStore.get('x-vercel-ip-country') || headerStore.get('cf-ipcountry');
+        const headerData = await detectLocationFromHeaders(locale); // Pass locale here too!
 
-        if (country) region0 = country;
+        // If we don't have country, take it from headers
+        if (region0 === 'Unknown') region0 = headerData.region0;
 
-        if (city) {
-            region1 = city;
-            if (region2 === 'Unknown') region2 = city;
-        } else if (country) {
-            region1 = country;
-        }
-
-        // Note: We don't overwrite `timezone` here if GPS set it. 
-        // If GPS missed (else block above), we already tried headers.
-        // So just ensure fallback checks headers again if GPS was attempted but failed?
-        // Logic check:
-        // - Case GPS: `timezone` set by geo-tz. `else` block skipped.
-        // - Case No GPS: `timezone` set by headers in `else` block.
-        // - Case GPS Fail: `timezone` default ('Asia/Seoul'). Should we try headers? 
-        //   Yes, if `geo-tz` failed or exception occurred.
-        //   Refinement: Let's make timezone header check robust.
-
-        // Robust Timezone Fallback: If still default and headers available, take headers.
-        if (timezone === 'Asia/Seoul') {
-            const tzHeader = headerStore.get('x-vercel-ip-timezone') || headerStore.get('cf-timezone');
-            if (tzHeader) timezone = tzHeader;
+        // If we need better city specificity
+        if (headerData.region1 !== 'Unknown') {
+            // If we currently have nothing, or just country -> take header city
+            if (region1 === 'Unknown' || region1 === region0) {
+                region1 = headerData.region1;
+                // Header doesn't give region2, but set it to city if unknown so we have something at Lv2?
+                // (Legacy behavior preserved: set region2=city if region2 is unknown)
+                if (region2 === 'Unknown') region2 = headerData.region1;
+            }
+        } else if (headerData.region0 !== 'Unknown') {
+            // Header only has country
+            if (region1 === 'Unknown') region1 = headerData.region0;
         }
     }
+
 
     // 1.5. Generate Persistent Analysis (Server-Side)
     let analysis_text: string | null = null;
