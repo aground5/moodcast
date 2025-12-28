@@ -1,4 +1,4 @@
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { DashboardStats } from '../actions/getDashboardStats';
 import { analyzeScenario } from './AnalysisEngine';
@@ -7,7 +7,8 @@ type Gender = 'male' | 'female';
 type Mood = 'good' | 'bad';
 
 export function useAnalysis(gender: Gender | null, mood: Mood | null, stats: DashboardStats | null, initialAnalysis?: string) {
-    const tDefault = useTranslations('analysis');
+    const t = useTranslations(); // Get root translator to access 'vote' and 'analysis'
+    const locale = useLocale();
 
     // Stable State: Initialize with SSR value if present
     const [stableMessage, setStableMessage] = useState<string | null>(initialAnalysis || null);
@@ -23,10 +24,10 @@ export function useAnalysis(gender: Gender | null, mood: Mood | null, stats: Das
             return;
         }
 
-        const message = analyzeScenario(gender, mood, stats);
+        const message = analyzeScenario(gender, mood, stats, locale, t);
         setStableMessage(message);
 
-    }, [gender, mood, stats, stableMessage]);
+    }, [gender, mood, stats, stableMessage, locale, t]);
 
-    return stableMessage || tDefault('error');
+    return stableMessage || t('analysis.error');
 }

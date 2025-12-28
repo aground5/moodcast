@@ -85,6 +85,8 @@ export async function submitVoteAction(
     try {
         const { getDashboardStats } = await import('@/widgets/dashboard/actions/getDashboardStats');
         const { analyzeScenario } = await import('@/widgets/dashboard/lib/AnalysisEngine');
+        const { getTranslations } = await import('next-intl/server');
+        const t = await getTranslations({ locale });
 
         // Fetch CURRENT stats: Region Fallback (Region -> Country -> World)
         // We pass the hierarchy context; the function handles the waterfall.
@@ -111,12 +113,12 @@ export async function submitVoteAction(
         } else {
             const oldTotal = nextStats.female.total;
             const oldGood = Math.round(nextStats.female.score * oldTotal / 100);
-            nextStats.female.total += 1;
+            nextStats.male.total += 1;
             nextStats.female.score = Math.round(((oldGood + (isGood ? 1 : 0)) / nextStats.female.total) * 100);
         }
 
         // Generate Analysis
-        analysis_text = analyzeScenario(gender, mood, nextStats);
+        analysis_text = analyzeScenario(gender, mood, nextStats, locale, t);
 
     } catch (e) {
         console.error("Analysis generation failed:", e);
@@ -166,7 +168,11 @@ export async function submitVoteAction(
         const { broadcastVote } = await import('../api/broadcastVote');
         // Fire and forget-ish, or await. Awaiting adds latency to the user's "Vote" action.
         // But Server Actions must succeed. Let's await to be safe for now, can optimize later.
-        await broadcastVote(region2 !== 'Unknown' ? region2 : undefined, timezone);
+        await broadcastVote({
+            region_lv2: region2 !== 'Unknown' ? region2 : undefined,
+            region_lv1: region1 !== 'Unknown' ? region1 : undefined,
+            region_lv0: region0 !== 'Unknown' ? region0 : undefined,
+        }, timezone);
     } catch (e) {
         console.error("Broadcast failed:", e);
         // Don't fail the vote just because broadcast failed

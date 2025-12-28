@@ -1,0 +1,53 @@
+{
+    "app": {
+        "title": "Moodcast",
+        "description": "Платформа синхронизации местного настроения"
+    },
+    "home": {
+        "hero": {
+            "title": "Синхронизируйтесь с атмосферой\n<highlight>{region}</highlight> сейчас.",
+            "start": "Начать",
+            "nudge": "Как прошел твой день?",
+            "nudge_returning": "С возвращением! Как настроение?"
+        }
+    },
+    "vote": {
+        "gender": {
+            "question": "Выберите ваш пол",
+            "male": "Мужчина",
+            "female": "Женщина"
+        },
+        "mood": {
+            "question": "Как вы себя чувствуете?",
+            "good": "Хорошо",
+            "bad": "Плохо",
+            "instruction_hold": "Удерживайте...",
+            "instruction_release": "Отпустите!",
+            "instruction_default": "Нажмите и удерживайте, чтобы зафиксировать настроение"
+        },
+        "header": {
+            "title": "Привет! Давайте создавать атмосферу <highlight>{region}</highlight> вместе."
+        }
+    },
+    "dashboard": {
+        "title": "<highlight>Погода Настроения</highlight> в {region}",
+        "participants": "Участники",
+        "happiness_index": "Индекс Счастья",
+        "reset_notice": "Данные сбрасываются в полночь.",
+        "my_mood_prefix": "Вы выбрали ",
+        "my_mood_good": "Хорошо",
+        "my_mood_bad": "Плохо",
+        "my_mood_suffix": " сегодня.",
+        "region_report_title": "Отчет по {region}",
+        "live_update": "Только что обновлено",
+        "share_button": "Поделиться настроением",
+        "data_lab_title": "Лаборатория данных"
+    },
+    "error": {
+        "error": "Невозможно проанализировать данные."
+    },
+    "common": {
+        "world": "Мир",
+        "unknown": "Неизвестно"
+    }
+}

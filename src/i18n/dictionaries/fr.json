@@ -1,0 +1,53 @@
+{
+    "app": {
+        "title": "Moodcast",
+        "description": "Plateforme de synchronisation d'humeur locale"
+    },
+    "home": {
+        "hero": {
+            "title": "Synchronisez-vous avec l'ambiance\nde <highlight>{region}</highlight> maintenant.",
+            "start": "Commencer",
+            "nudge": "Comment s'est passée votre journée ?",
+            "nudge_returning": "Bon retour ! Quelle est votre humeur ?"
+        }
+    },
+    "vote": {
+        "gender": {
+            "question": "Sélectionnez votre genre",
+            "male": "Homme",
+            "female": "Femme"
+        },
+        "mood": {
+            "question": "Comment vous sentez-vous ?",
+            "good": "Bien",
+            "bad": "Mal",
+            "instruction_hold": "Maintenez...",
+            "instruction_release": "Relâchez !",
+            "instruction_default": "Appuyez longuement pour capturer votre humeur"
+        },
+        "header": {
+            "title": "Bonjour ! Façonnons ensemble l'ambiance de <highlight>{region}</highlight>."
+        }
+    },
+    "dashboard": {
+        "title": "<highlight>Météo de l'Humeur</highlight> à {region}",
+        "participants": "Participants",
+        "happiness_index": "Indice de Bonheur",
+        "reset_notice": "Les données sont réinitialisées à minuit.",
+        "my_mood_prefix": "Vous avez choisi ",
+        "my_mood_good": "Bien",
+        "my_mood_bad": "Mal",
+        "my_mood_suffix": " aujourd'hui.",
+        "region_report_title": "Rapport {region}",
+        "live_update": "Mise à jour à l'instant",
+        "share_button": "Partager cette ambiance",
+        "data_lab_title": "Labo de Données"
+    },
+    "error": {
+        "error": "Impossible d'analyser les données."
+    },
+    "common": {
+        "world": "Monde",
+        "unknown": "Inconnu"
+    }
+}

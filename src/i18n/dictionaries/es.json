@@ -1,0 +1,53 @@
+{
+    "app": {
+        "title": "Moodcast",
+        "description": "Plataforma de sincronización de estado de ánimo local"
+    },
+    "home": {
+        "hero": {
+            "title": "Sincronízate con el ambiente\nde <highlight>{region}</highlight> ahora.",
+            "start": "Empezar",
+            "nudge": "¿Qué tal tu día?",
+            "nudge_returning": "¡Bienvenido de nuevo! ¿Cómo te sientes?"
+        }
+    },
+    "vote": {
+        "gender": {
+            "question": "Selecciona tu género",
+            "male": "Hombre",
+            "female": "Mujer"
+        },
+        "mood": {
+            "question": "¿Cómo te sientes?",
+            "good": "Bien",
+            "bad": "Mal",
+            "instruction_hold": "Mantén presionado...",
+            "instruction_release": "¡Suelta!",
+            "instruction_default": "Mantén presionado para capturar tu estado de ánimo"
+        },
+        "header": {
+            "title": "¡Hola! Creemos juntos el ambiente de <highlight>{region}</highlight>."
+        }
+    },
+    "dashboard": {
+        "title": "<highlight>Clima Emocional</highlight> de {region}",
+        "participants": "Participantes",
+        "happiness_index": "Índice de Felicidad",
+        "reset_notice": "Los datos se reinician a medianoche.",
+        "my_mood_prefix": "Elegiste ",
+        "my_mood_good": "Bien",
+        "my_mood_bad": "Mal",
+        "my_mood_suffix": " hoy.",
+        "region_report_title": "Informe de {region}",
+        "live_update": "Recién actualizado",
+        "share_button": "Compartir este ambiente",
+        "data_lab_title": "Laboratorio de Datos"
+    },
+    "error": {
+        "error": "No se pueden analizar los datos."
+    },
+    "common": {
+        "world": "Mundo",
+        "unknown": "Desconocido"
+    }
+}

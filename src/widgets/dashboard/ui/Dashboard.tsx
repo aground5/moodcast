@@ -51,7 +51,7 @@ export function Dashboard({ initialAnalysis, initialStats }: { initialAnalysis?:
 
         // Realtime Subscription
         const supabase = createClient();
-        const channelName = region ? `mood-updates:${region}` : `mood-updates:National`;
+        const channelName = region ? `mood-updates:${region}` : `mood-updates:Global`;
 
         const channel = supabase.channel(channelName)
             .on('broadcast', { event: 'stats-update' }, (payload) => {

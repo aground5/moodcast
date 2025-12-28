@@ -1,0 +1,53 @@
+{
+    "app": {
+        "title": "Moodcast",
+        "description": "Local Vibe Synchronization Platform"
+    },
+    "home": {
+        "hero": {
+            "title": "Sync with the vibe of\n<highlight>{region}</highlight> now.",
+            "start": "Start",
+            "nudge": "How was your day?",
+            "nudge_returning": "Welcome back! How's your mood?"
+        }
+    },
+    "vote": {
+        "gender": {
+            "question": "Select your gender",
+            "male": "Male",
+            "female": "Female"
+        },
+        "mood": {
+            "question": "How are you feeling?",
+            "good": "Good",
+            "bad": "Bad",
+            "instruction_hold": "Hold button...",
+            "instruction_release": "Release now!",
+            "instruction_default": "Press and hold to capture your mood"
+        },
+        "header": {
+            "title": "Hello! Let's shape the vibe of <highlight>{region}</highlight> together."
+        }
+    },
+    "dashboard": {
+        "title": "<highlight>Mood Weather</highlight> of {region}",
+        "participants": "Participants",
+        "happiness_index": "Happiness Index",
+        "reset_notice": "Data resets at midnight.",
+        "my_mood_prefix": "You chose ",
+        "my_mood_good": "Good",
+        "my_mood_bad": "Bad",
+        "my_mood_suffix": " today.",
+        "region_report_title": "{region} Report",
+        "live_update": "Just updated",
+        "share_button": "Share this Vibe",
+        "data_lab_title": "Data Lab"
+    },
+    "error": {
+        "error": "Unable to analyze data."
+    },
+    "common": {
+        "world": "World",
+        "unknown": "Unknown"
+    }
+}

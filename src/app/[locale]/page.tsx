@@ -84,12 +84,16 @@ export default async function Page() {
         } else {
             // Priority 2: Legacy / Fallback Generation
             const { analyzeScenario } = await import('@/widgets/dashboard/lib/AnalysisEngine');
+            const { getTranslations } = await import('next-intl/server');
+            const t = await getTranslations({ locale });
 
             // Generate the stable string
             initialAnalysis = analyzeScenario(
                 initialVote.gender as 'male' | 'female',
                 initialVote.mood as 'good' | 'bad',
-                initialStats
+                initialStats,
+                locale,
+                t
             );
         }
     }

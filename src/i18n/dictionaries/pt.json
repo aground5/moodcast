@@ -1,0 +1,53 @@
+{
+    "app": {
+        "title": "Moodcast",
+        "description": "Plataforma de Sincronização de Humor Local"
+    },
+    "home": {
+        "hero": {
+            "title": "Sincronize com a vibe de\n<highlight>{region}</highlight> agora.",
+            "start": "Começar",
+            "nudge": "Como foi o seu dia?",
+            "nudge_returning": "Bem-vindo de volta! Como está se sentindo?"
+        }
+    },
+    "vote": {
+        "gender": {
+            "question": "Selecione seu gênero",
+            "male": "Homem",
+            "female": "Mulher"
+        },
+        "mood": {
+            "question": "Como você está se sentindo?",
+            "good": "Bem",
+            "bad": "Mal",
+            "instruction_hold": "Segure...",
+            "instruction_release": "Solte!",
+            "instruction_default": "Pressione e segure para capturar seu humor"
+        },
+        "header": {
+            "title": "Olá! Vamos moldar a vibe de <highlight>{region}</highlight> juntos."
+        }
+    },
+    "dashboard": {
+        "title": "<highlight>Clima Emocional</highlight> de {region}",
+        "participants": "Participantes",
+        "happiness_index": "Índice de Felicidade",
+        "reset_notice": "Os dados são reiniciados à meia-noite.",
+        "my_mood_prefix": "Você escolheu ",
+        "my_mood_good": "Bem",
+        "my_mood_bad": "Mal",
+        "my_mood_suffix": " hoje.",
+        "region_report_title": "Relatório de {region}",
+        "live_update": "Atualizado agora",
+        "share_button": "Compartilhar essa Vibe",
+        "data_lab_title": "Laboratório de Dados"
+    },
+    "error": {
+        "error": "Não foi possível analisar os dados."
+    },
+    "common": {
+        "world": "Mundo",
+        "unknown": "Desconhecido"
+    }
+}

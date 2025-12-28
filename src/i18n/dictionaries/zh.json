@@ -1,0 +1,53 @@
+{
+    "app": {
+        "title": "Moodcast",
+        "description": "基于位置的情绪同步平台"
+    },
+    "home": {
+        "hero": {
+            "title": "现在就与<highlight>{region}</highlight>的\n氛围同步。",
+            "start": "开始",
+            "nudge": "今天过得怎么样？",
+            "nudge_returning": "欢迎回来！今天心情如何？"
+        }
+    },
+    "vote": {
+        "gender": {
+            "question": "请选择性别",
+            "male": "男性",
+            "female": "女性"
+        },
+        "mood": {
+            "question": "现在感觉如何？",
+            "good": "好",
+            "bad": "不好",
+            "instruction_hold": "按住按钮...",
+            "instruction_release": "松开！",
+            "instruction_default": "长按按钮注入你的情绪"
+        },
+        "header": {
+            "title": "你好！让我们一起创造<highlight>{region}</highlight>的氛围。"
+        }
+    },
+    "dashboard": {
+        "title": "{region}的<highlight>心情天气</highlight>",
+        "participants": "参与者",
+        "happiness_index": "幸福指数",
+        "reset_notice": "数据将在午夜重置。",
+        "my_mood_prefix": "你今天选择了",
+        "my_mood_good": "好",
+        "my_mood_bad": "不好",
+        "my_mood_suffix": "。",
+        "region_report_title": "{region} 报告",
+        "live_update": "剛剛更新",
+        "share_button": "分享这种氛围",
+        "data_lab_title": "数据实验室"
+    },
+    "error": {
+        "error": "无法分析数据。"
+    },
+    "common": {
+        "world": "世界",
+        "unknown": "未知"
+    }
+}

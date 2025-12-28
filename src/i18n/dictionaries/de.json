@@ -1,0 +1,53 @@
+{
+    "app": {
+        "title": "Moodcast",
+        "description": "Lokale Stimmungs-Synchronisationsplattform"
+    },
+    "home": {
+        "hero": {
+            "title": "Synchronisiere dich jetzt mit der\nStimmung in <highlight>{region}</highlight>.",
+            "start": "Starten",
+            "nudge": "Wie war dein Tag?",
+            "nudge_returning": "Willkommen zurück! Wie ist deine Stimmung?"
+        }
+    },
+    "vote": {
+        "gender": {
+            "question": "Wähle dein Geschlecht",
+            "male": "Männlich",
+            "female": "Weiblich"
+        },
+        "mood": {
+            "question": "Wie fühlst du dich?",
+            "good": "Gut",
+            "bad": "Schlecht",
+            "instruction_hold": "Gedrückt halten...",
+            "instruction_release": "Loslassen!",
+            "instruction_default": "Drücke lange, um deine Stimmung einzufangen"
+        },
+        "header": {
+            "title": "Hallo! Lass uns gemeinsam die Stimmung in <highlight>{region}</highlight> gestalten."
+        }
+    },
+    "dashboard": {
+        "title": "<highlight>Stimmungswetter</highlight> in {region}",
+        "participants": "Teilnehmer",
+        "happiness_index": "Glücksindex",
+        "reset_notice": "Daten werden um Mitternacht zurückgesetzt.",
+        "my_mood_prefix": "Du hast heute ",
+        "my_mood_good": "Gut",
+        "my_mood_bad": "Schlecht",
+        "my_mood_suffix": " gewählt.",
+        "region_report_title": "{region} Bericht",
+        "live_update": "Gerade aktualisiert",
+        "share_button": "Stimmung teilen",
+        "data_lab_title": "Datenlabor"
+    },
+    "error": {
+        "error": "Daten konnten nicht analysiert werden."
+    },
+    "common": {
+        "world": "Welt",
+        "unknown": "Unbekannt"
+    }
+}

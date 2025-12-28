@@ -1,14 +1,41 @@
-import { ANALYSIS_MENT_DB, ScenarioType } from '@/i18n/contents/analysis_ko';
+import { ANALYSIS_MENT_DB as DB_KO, ScenarioType } from '@/i18n/contents/analysis_ko';
+import { ANALYSIS_MENT_DB_EN } from '@/i18n/contents/analysis_en';
+import { ANALYSIS_MENT_DB_JA } from '@/i18n/contents/analysis_ja';
+import { ANALYSIS_MENT_DB_ZH } from '@/i18n/contents/analysis_zh';
+import { ANALYSIS_MENT_DB_DE } from '@/i18n/contents/analysis_de';
+import { ANALYSIS_MENT_DB_FR } from '@/i18n/contents/analysis_fr';
+import { ANALYSIS_MENT_DB_ES } from '@/i18n/contents/analysis_es';
+import { ANALYSIS_MENT_DB_PT } from '@/i18n/contents/analysis_pt';
+import { ANALYSIS_MENT_DB_RU } from '@/i18n/contents/analysis_ru';
+
 import { DashboardStats } from '../actions/getDashboardStats';
 
 type Gender = 'male' | 'female';
 type Mood = 'good' | 'bad';
 
+const DB_MAP: Record<string, any> = {
+    ko: DB_KO,
+    en: ANALYSIS_MENT_DB_EN,
+    ja: ANALYSIS_MENT_DB_JA,
+    zh: ANALYSIS_MENT_DB_ZH,
+    de: ANALYSIS_MENT_DB_DE,
+    fr: ANALYSIS_MENT_DB_FR,
+    es: ANALYSIS_MENT_DB_ES,
+    pt: ANALYSIS_MENT_DB_PT,
+    ru: ANALYSIS_MENT_DB_RU,
+};
+
 /**
  * The "Relational Meaning" Engine.
  * Analyzes the user's state relative to Other Gender, Peer Group, and the World.
  */
-export function analyzeScenario(gender: Gender, mood: Mood, stats: DashboardStats): string {
+export function analyzeScenario(
+    gender: Gender,
+    mood: Mood,
+    stats: DashboardStats,
+    locale: string = 'ko',
+    t: (key: string) => string
+): string {
     const { score: totalScore, male, female, region } = stats;
 
     const myPeerScore = gender === 'male' ? male.score : female.score;
@@ -85,10 +112,12 @@ export function analyzeScenario(gender: Gender, mood: Mood, stats: DashboardStat
         }
     }
 
-    const messages: readonly string[] = ANALYSIS_MENT_DB[scenario];
+    const db = DB_MAP[locale] || DB_MAP['en']; // Fallback to EN if locale missing
+    const messages: readonly string[] = db[scenario];
+
     // Safety check in case DB is missing key or empty
     if (!messages || messages.length === 0) {
-        return "데이터 분석 중입니다...";
+        return t('analysis.analyzing_data') || "Analyzing data..."; // Fallback key
     }
 
     const randomIndex = Math.floor(Math.random() * messages.length);
@@ -97,15 +126,18 @@ export function analyzeScenario(gender: Gender, mood: Mood, stats: DashboardStat
 
     // --- Interpolation ---
     const isMale = gender === 'male';
-    const myGenderKR = isMale ? '남자' : '여자';
-    const otherGenderKR = isMale ? '여자' : '남자';
+
+    // Use translator for gender terms
+    const myGenderTerm = isMale ? t('vote.gender.male') : t('vote.gender.female');
+    const otherGenderTerm = isMale ? t('vote.gender.female') : t('vote.gender.male');
+
     const myScoreInt = Math.round(isMale ? male.score : female.score);
     const otherScoreInt = Math.round(isMale ? female.score : male.score);
 
     message = message
         .replace(/{region}/g, region)
-        .replace(/{gender}/g, myGenderKR)
-        .replace(/{otherGender}/g, otherGenderKR)
+        .replace(/{gender}/g, myGenderTerm)
+        .replace(/{otherGender}/g, otherGenderTerm)
         .replace(/{myScore}/g, myScoreInt.toString())
         .replace(/{otherScore}/g, otherScoreInt.toString());
 
