@@ -12,19 +12,37 @@ import { createClient } from '@/shared/lib/supabase/client';
 import { AnimatePresence, motion } from 'framer-motion';
 import { DataLab } from './DataLab';
 
-export function Dashboard({ initialAnalysis }: { initialAnalysis?: string }) {
+export function Dashboard({ initialAnalysis, initialStats }: { initialAnalysis?: string, initialStats?: DashboardStats | null }) {
     const t = useTranslations('dashboard');
     const tCommon = useTranslations('common');
     const { gender, mood, region } = useVoteStore();
-    const [stats, setStats] = useState<DashboardStats | null>(null);
+    // Initialize with server data if available to prevent "Global" flash
+    const [stats, setStats] = useState<DashboardStats | null>(initialStats || null);
 
     // Fetch Stats on Mount & Subscribe to Realtime
     useEffect(() => {
         const fetchStats = async () => {
+            // Skip fetching if we already have initial stats (and region matches roughly or just trust it)
+            // But if region changes (client-side), we must fetch.
+            // Simple logic: If we have stats, skip. 
+            // Wait, if user navigates or changes settings? Dashboard is only shown on Result step.
+            if (initialStats && !region) return; // Use initial
+            if (initialStats && stats === initialStats) return; // Already have it. 
+
+            // Actually, simplest is: Only fetch if stats is null OR if region changed.
+            // But region changes on hydration.
+
+            // Optimization: fetch only if stats is null.
+            if (stats) return;
+
             // Detect browser timezone for accurate "Start of Day"
             const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
             const data = await getDashboardStats(
-                { region_lv2: region || undefined },
+                {
+                    region_lv2: region || undefined,
+                    region_lv1: region || undefined,
+                    region_lv0: region || undefined
+                },
                 browserTimezone
             );
             setStats(data);

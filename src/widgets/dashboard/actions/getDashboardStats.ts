@@ -59,16 +59,8 @@ export async function getDashboardStats(
         if (res && res.data.length > 0) result = res;
     }
 
-    // Check Lv1 (City) - Added per user request
+    // Check Lv1 (City)
     if (!result && isValid(context.region_lv1)) {
-        // Query param modification for Lv1 needed?
-        // Wait, the original code didn't handle 'lv1' filter type. I need to add it.
-        // Assuming 'lv1' corresponds to a column or logic? 
-        // Note: The schema might not have 'region_lv1' column indexed or used? 
-        // Checked file content: it selects 'region_lv2, region_lv0'. 
-        // I might need to verify if region_lv1 exists in DB.
-        // Assuming it does (based on user request). If not, we skip.
-        // Let's safe-check context first.
         const res = await fetchStats('lv1', context.region_lv1);
         if (res && res.data.length > 0) result = res;
     }
@@ -86,22 +78,23 @@ export async function getDashboardStats(
 
     const votes = result?.data || [];
     const regionLabel = result?.filter === 'lv2' ? result.value :
-        result?.filter === 'lv0' ? result.value : 'Global';
+        result?.filter === 'lv1' ? result.value :
+            result?.filter === 'lv0' ? result.value : 'Global';
 
     const total = votes.length;
     const good = votes.filter(v => v.mood === 'good').length;
-    const score = total === 0 ? 0 : Math.round((good / total) * 100);
+    const score = total === 0 ? 100 : Math.round((good / total) * 100);
 
     // Gender Breakdowns
     const maleVotes = votes.filter(v => v.gender === 'male');
     const maleTotal = maleVotes.length;
     const maleGood = maleVotes.filter(v => v.mood === 'good').length;
-    const maleScore = maleTotal === 0 ? 0 : Math.round((maleGood / maleTotal) * 100);
+    const maleScore = maleTotal === 0 ? 100 : Math.round((maleGood / maleTotal) * 100);
 
     const femaleVotes = votes.filter(v => v.gender === 'female');
     const femaleTotal = femaleVotes.length;
     const femaleGood = femaleVotes.filter(v => v.mood === 'good').length;
-    const femaleScore = femaleTotal === 0 ? 0 : Math.round((femaleGood / femaleTotal) * 100);
+    const femaleScore = femaleTotal === 0 ? 100 : Math.round((femaleGood / femaleTotal) * 100);
 
     return {
         score,

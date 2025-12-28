@@ -24,6 +24,9 @@
             "instruction_hold": "계속 누르고 있으세요...",
             "instruction_release": "이제 손을 떼세요!",
             "instruction_default": "버튼을 꾹 눌러 감정을 담아보세요"
+        },
+        "header": {
+            "title": "반가워요! <highlight>{region}</highlight>의 기류를 함께 만들어가요."
         }
     },
     "dashboard": {

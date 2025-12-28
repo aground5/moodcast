@@ -50,7 +50,7 @@ export default async function Page() {
 
         const { data } = await supabase
             .from('mood_votes')
-            .select('mood, gender, created_at, region_lv2, analysis_text')
+            .select('mood, gender, created_at, region_lv2, region_lv1, region_lv0, analysis_text')
             .eq('user_id', userId)
             .gte('created_at', startOfTodayUTC)
             .limit(1)
@@ -65,31 +65,31 @@ export default async function Page() {
     const savedGender = cookieStore.get('moodcast_gender')?.value as 'male' | 'female' | undefined;
     const initialStep = hasVoted ? 'result' : 'gender';
 
-    // 4. SSR Analysis (Stable Message)
+    // 4. SSR Analysis & Stats (Stable Message & Instant Dashboard)
     let initialAnalysis: string | undefined;
+    let initialStats: any = null; // Type: DashboardStats
+
     if (hasVoted && initialVote) {
+        // Always fetch stats for the dashboard to avoid client-side "Global" flash
+        const { getDashboardStats } = await import('@/widgets/dashboard/actions/getDashboardStats');
+        initialStats = await getDashboardStats({
+            region_lv2: initialVote.region_lv2 || undefined,
+            region_lv1: initialVote.region_lv1 || undefined,
+            region_lv0: initialVote.region_lv0 || undefined
+        }, timezone);
+
         // Priority 1: Use Persisted Text (DB)
         if (initialVote.analysis_text) {
             initialAnalysis = initialVote.analysis_text;
         } else {
             // Priority 2: Legacy / Fallback Generation
-            const { getDashboardStats } = await import('@/widgets/dashboard/actions/getDashboardStats');
             const { analyzeScenario } = await import('@/widgets/dashboard/lib/AnalysisEngine');
-
-            // Fetch stats for the context
-            // Note: Old votes might not have region_lv0, but that's fine (graceful degrade to global if lv2 empty)
-            const stats = await getDashboardStats({
-                region_lv2: initialVote.region_lv2 || undefined,
-                // Cast to any because we haven't updated the TS definition of data row fully in this file, 
-                // but runtime data might have it. Or fallback.
-                region_lv0: (initialVote as any).region_lv0 || undefined
-            }, timezone);
 
             // Generate the stable string
             initialAnalysis = analyzeScenario(
                 initialVote.gender as 'male' | 'female',
                 initialVote.mood as 'good' | 'bad',
-                stats
+                initialStats
             );
         }
     }
@@ -102,5 +102,6 @@ export default async function Page() {
         initialCountry={region0} // Still pass this for context if needed
         initialCity={initialCity} // New Prop
         initialAnalysis={initialAnalysis}
+        initialStats={initialStats}
     />;
 }

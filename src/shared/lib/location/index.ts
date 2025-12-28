@@ -34,13 +34,24 @@ export async function detectLocationFromHeaders(
 
     let city = 'Unknown';
     let country = 'Unknown';
+    let region2 = 'Unknown';
     let timezone = 'Asia/Seoul';
 
     // 2. Try MaxMind GeoIP
     if (ip && ip !== '127.0.0.1' && ip !== '::1') {
         const geoResult = await lookupIP(ip, locale);
         if (geoResult) {
-            city = geoResult.city;
+            // Special Handling (e.g. Korea):
+            // MaxMind returns District/Si/Gun as 'city' and Do/SpecialCity as 'subdivision'.
+            // We want Region1=Do/SpecialCity, Region2=District/Si.
+            // Result: Region1="Seoul", Region2="Seodaemun-gu"
+            if (geoResult.countryCode === 'KR' && geoResult.subdivision) {
+                city = geoResult.subdivision;
+                region2 = geoResult.city;
+            } else {
+                city = geoResult.city;
+            }
+
             // Immediate Country Localization:
             const code = geoResult.countryCode;
             if (code && code !== 'Unknown') {
@@ -60,8 +71,11 @@ export async function detectLocationFromHeaders(
             // ENABLED explicitly when called with skipLocalization: false (e.g. Voting Action)
             if (!options.skipLocalization && !MAXMIND_SUPPORTED_LOCALES.includes(locale) && city !== 'Unknown') {
                 const localized = await localizeLocationViaNominatim(city, country, locale);
-                if (localized && localized.region1 && localized.region1 !== 'Unknown') {
-                    city = localized.region1;
+                if (localized) {
+                    if (localized.region1 && localized.region1 !== 'Unknown') city = localized.region1;
+                    // Also attempt to capture region2 if Nominatim found a more granular component
+                    // (e.g. if input city was actually a district like "Gangnam-gu")
+                    if (localized.region2 && localized.region2 !== 'Unknown') region2 = localized.region2;
                 }
             }
         }
@@ -82,6 +96,7 @@ export async function detectLocationFromHeaders(
             const localized = await localizeLocationViaNominatim(city, country, locale);
             if (localized) {
                 if (localized.region1 && localized.region1 !== 'Unknown') city = localized.region1;
+                if (localized.region2 && localized.region2 !== 'Unknown') region2 = localized.region2;
             }
         }
 
@@ -97,7 +112,7 @@ export async function detectLocationFromHeaders(
     return {
         region0: country,
         region1: city !== 'Unknown' ? city : country, // Fallback to country if city unknown
-        region2: clickToRegion2(city), // Heuristic: City often maps to Lv2 in simple view, or stays Unknown
+        region2: region2 !== 'Unknown' ? region2 : clickToRegion2(city), // Use detected region2, fallback to heuristic
         timezone
     };
 }

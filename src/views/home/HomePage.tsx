@@ -4,6 +4,7 @@ import { useVoteStore } from '@/features/vote/model/useVoteStore';
 import { GenderSelector } from '@/features/vote/ui/GenderSelector';
 import { MoodSelector } from '@/features/vote/ui/MoodSelector';
 import { LandingHeader } from '@/widgets/landing/LandingHeader';
+import { MoodHeader } from '@/widgets/mood/MoodHeader';
 import { Dashboard } from '@/widgets/dashboard/ui/Dashboard';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect } from 'react';
@@ -19,11 +20,12 @@ interface HomePageProps {
     initialCountry?: string;
     initialCity?: string; // New prop for refinement source (e.g. English City)
     initialAnalysis?: string;
+    initialStats?: any; // DashboardStats
 }
 
 import { useTranslations, useLocale } from 'next-intl';
 
-export default function HomePage({ initialStep, savedGender, initialVote, ipRegion, initialCountry, initialCity, initialAnalysis }: HomePageProps) {
+export default function HomePage({ initialStep, savedGender, initialVote, ipRegion, initialCountry, initialCity, initialAnalysis, initialStats }: HomePageProps) {
     const t = useTranslations('dashboard'); // Assuming we need translations? Or just for locale.
     const locale = useLocale();
     const { step, setStep, setGender, setMood, setRegion, setCoords } = useVoteStore();
@@ -66,42 +68,57 @@ export default function HomePage({ initialStep, savedGender, initialVote, ipRegi
             setStep('result');
         }
 
-        // 3. Dynamic GPS Support (watchPosition)
+        // 3. Dynamic GPS Support (watchPosition + Permission Listener)
         let watchId: number | null = null;
+        let permissionStatus: PermissionStatus | null = null;
 
-        if ('geolocation' in navigator) {
-            watchId = navigator.geolocation.watchPosition(
-                async (position) => {
-                    const lat = position.coords.latitude;
-                    const lng = position.coords.longitude;
+        const startWatching = () => {
+            if ('geolocation' in navigator) {
+                // Clear existing watch if any to avoid duplicates
+                if (watchId !== null) navigator.geolocation.clearWatch(watchId);
 
-                    setCoords({ lat, lng });
+                watchId = navigator.geolocation.watchPosition(
+                    async (position) => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
 
-                    // Reverse Geocode updates the Region to the most accurate GPS-based name
-                    if (!initialVote) {
-                        // Import dynamically
-                        const { reverseGeocode } = await import('@/shared/lib/location/geocoding');
-                        // Pass locale!
-                        const refinedRegion = await reverseGeocode(lat, lng, locale);
-                        if (refinedRegion) {
-                            setRegion(refinedRegion);
+                        setCoords({ lat, lng });
+
+                        if (!initialVote) {
+                            const { reverseGeocode } = await import('@/shared/lib/location/geocoding');
+                            const refinedRegion = await reverseGeocode(lat, lng, locale);
+                            if (refinedRegion) {
+                                setRegion(refinedRegion);
+                            }
                         }
+                    },
+                    (error) => {
+                        console.log('Location watch error:', error);
+                    },
+                    { timeout: 10000, maximumAge: 0, enableHighAccuracy: true }
+                );
+            }
+        };
+
+        // Initialize watch
+        startWatching();
+
+        // Listen for Permission Changes (Denied -> Granted)
+        if ('permissions' in navigator) {
+            navigator.permissions.query({ name: 'geolocation' }).then((status) => {
+                permissionStatus = status;
+                status.onchange = () => {
+                    console.log('Permission changed:', status.state);
+                    if (status.state === 'granted') {
+                        startWatching();
                     }
-                },
-                (error) => {
-                    // Permission denied or unavailable. Silent fail or fallback to IP (already done).
-                    // If user denies then enables -> 'watchPosition' usually doesn't create new ID, 
-                    // except if re-called.
-                    // Actually, 'watchPosition' persists. If permission changes from Deny -> Allow (via browser settings), 
-                    // the page usually needs reload, BUT if Prompt -> Allow, it works.
-                    // If Turned Off -> Turned On (OS level), it works.
-                },
-                { timeout: 10000, maximumAge: 0, enableHighAccuracy: true }
-            );
+                };
+            });
         }
 
         return () => {
             if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+            if (permissionStatus) permissionStatus.onchange = null;
         };
     }, [initialStep, savedGender, initialVote, ipRegion, setStep, setGender, setMood, setRegion, setCoords, locale, initialCity, initialCountry]);
 
@@ -122,7 +139,7 @@ export default function HomePage({ initialStep, savedGender, initialVote, ipRegi
                         transition={{ duration: 0.5 }}
                         className="flex flex-col items-center w-full"
                     >
-                        <LandingHeader isReturningUser={isReturningUser} />
+                        <LandingHeader isReturningUser={isReturningUser} initialRegion={ipRegion} />
                         <GenderSelector />
                     </motion.div>
                 )}
@@ -138,7 +155,8 @@ export default function HomePage({ initialStep, savedGender, initialVote, ipRegi
                     >
                         {/* ... We need to verify imports for LandingHeader/GenderSelector/MoodSelector if I replace whole file ... */}
                         {/* Careful replacing huge blocks. I'll target specific blocks. */}
-                        <LandingHeader isReturningUser={isReturningUser} />
+                        {/* Show MoodHeader only if the user is returning (started at this step). New users should focus on the question. */}
+                        {isReturningUser && <MoodHeader initialRegion={ipRegion} />}
                         <MoodSelector />
                     </motion.div>
                 )}
@@ -151,7 +169,7 @@ export default function HomePage({ initialStep, savedGender, initialVote, ipRegi
                         transition={{ duration: 0.5 }}
                         className="w-full max-w-sm"
                     >
-                        <Dashboard initialAnalysis={initialAnalysis} />
+                        <Dashboard initialAnalysis={initialAnalysis} initialStats={initialStats} />
                     </motion.div>
                 )}
             </AnimatePresence>

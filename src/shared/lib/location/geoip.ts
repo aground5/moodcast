@@ -18,6 +18,7 @@ export type GeoIPResult = {
     city: string;
     timezone: string;
     countryCode?: string;
+    subdivision?: string;
 };
 
 export const MAXMIND_SUPPORTED_LOCALES = ['de', 'en', 'es', 'fr', 'ja', 'pt-BR', 'ru', 'zh-CN'];
@@ -40,7 +41,10 @@ export async function lookupIP(ip: string, locale: string = 'en'): Promise<GeoIP
             country,
             city,
             timezone,
-            countryCode
+            countryCode,
+            subdivision: (response.subdivisions && response.subdivisions.length > 0)
+                ? ((response.subdivisions[0].names as any)?.[locale] || (response.subdivisions[0].names as any)?.['en'])
+                : undefined
         };
     } catch (e) {
         // IP not found or invalid

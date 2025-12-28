@@ -44,19 +44,26 @@ export async function submitVoteAction(
         if (gpsData.timezone) timezone = gpsData.timezone;
     }
 
-    // Always attempt to get Timezone from headers (if GPS didn't provide one)
-    if (!timezone || timezone === 'Asia/Seoul') {
-        const headerData = await detectLocationFromHeaders(locale, { skipLocalization: false });
+    // Strategy B: Header Fallback & Timezone (Unified)
+    // If we are missing Timezone OR Location, we fetch header data ONE TIME with localization enabled.
+    let headerData = null;
+
+    const needTimezone = (!timezone || timezone === 'Asia/Seoul');
+    const needLocation = (region1 === 'Unknown' || region1 === region0);
+
+    if (needTimezone || needLocation) {
+        headerData = await detectLocationFromHeaders(locale, { skipLocalization: false });
+    }
+
+    // Apply Timezone from Header Data
+    if (needTimezone && headerData) {
         if (headerData.timezone && headerData.timezone !== 'Asia/Seoul') {
             timezone = headerData.timezone;
         }
     }
 
-    // Strategy B: Header Fallback (Location)
-    if (region1 === 'Unknown' || region1 === region0) {
-        // Force localization because we are about to save to DB.
-        const headerData = await detectLocationFromHeaders(locale, { skipLocalization: false });
-
+    // Apply Location from Header Data
+    if (needLocation && headerData) {
         // If we don't have country, take it from headers
         if (region0 === 'Unknown') region0 = headerData.region0;
 
@@ -65,9 +72,6 @@ export async function submitVoteAction(
             // If we currently have nothing, or just country -> take header city
             if (region1 === 'Unknown' || region1 === region0) {
                 region1 = headerData.region1;
-                // Header doesn't give region2, but set it to city if unknown so we have something at Lv2?
-                // (Legacy behavior preserved: set region2=city if region2 is unknown)
-                if (region2 === 'Unknown') region2 = headerData.region1;
             }
         } else if (headerData.region0 !== 'Unknown') {
             // Header only has country
@@ -127,9 +131,9 @@ export async function submitVoteAction(
         user_id: userId,
         lat,
         lng,
-        region_lv0: region0 !== 'Unknown' ? region0 : null,
-        region_lv1: region1 !== 'Unknown' ? region1 : null,
-        region_lv2: region2 !== 'Unknown' ? region2 : null,
+        region_lv0: region0,
+        region_lv1: region1,
+        region_lv2: region2,
         ip_hash: 'server-action',
         analysis_text, // Persist the generated text
     });
