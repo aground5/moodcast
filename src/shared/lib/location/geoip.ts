@@ -1,17 +1,13 @@
 import { Reader, ReaderModel } from '@maxmind/geoip2-node';
-// @ts-ignore -- geolite2-redist doesn't have good types
-import * as geolite2 from 'geolite2-redist';
+import path from 'path';
 
 // Cache the reader instance to reuse across requests in the same warm container
 let reader: ReaderModel | null = null;
 
 async function getReader() {
     if (!reader) {
-        // geolite2.open returns a Promise<string> (path)
-        const dbPath = await geolite2.open(
-            'GeoLite2-City' as any, // Library types are inconsistent
-            (path: string) => Promise.resolve(path)
-        );
+        // Use the static file we downloaded locally
+        const dbPath = path.join(process.cwd(), 'src/shared/assets/GeoLite2-City.mmdb');
         reader = await Reader.open(dbPath);
     }
     return reader;
