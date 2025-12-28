@@ -9,7 +9,8 @@ create table public.mood_votes (
   ip_hash text not null, -- Hashed IP for abuse prevention (not PII)
   lat double precision,
   lng double precision,
-  user_id text -- Infinite Session ID
+  user_id text, -- Infinite Session ID
+  analysis_text text -- Persisted message
 );
 
 -- Enable Row Level Security

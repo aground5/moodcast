@@ -22,6 +22,7 @@ export async function submitVoteAction(
     }
 
     // 1. Determine Location
+    let region0 = 'Unknown';
     let region1 = 'Unknown';
     let region2 = 'Unknown';
     let lat = coords?.lat;
@@ -43,6 +44,7 @@ export async function submitVoteAction(
                 const address = data.address;
 
                 // Map OSM address fields to Korean administrative divisions
+                region0 = address.country || 'Unknown';
                 region1 = address.city || address.province || address.state || 'Unknown';
                 region2 = address.borough || address.suburb || address.district || address.neighbourhood || 'Unknown';
             }
@@ -51,15 +53,67 @@ export async function submitVoteAction(
         }
     }
 
-    // Strategy B: Header Fallback (if strictly unknown)
-    if (region1 === 'Unknown' || region1 === 'South Korea') {
+    // Strategy B: Header Fallback (if strictly unknown OR if geocoding only gave us Country level)
+    let timezone = 'Asia/Seoul'; // Default
+    if (region1 === 'Unknown' || region1 === region0) {
         const headerStore = await headers();
         const city = headerStore.get('x-vercel-ip-city') || headerStore.get('cf-ipcity');
+        const country = headerStore.get('x-vercel-ip-country') || headerStore.get('cf-ipcountry');
+        const tzHeader = headerStore.get('x-vercel-ip-timezone') || headerStore.get('cf-timezone');
+
+        if (country) region0 = country;
 
         if (city) {
             region1 = city;
             if (region2 === 'Unknown') region2 = city;
+        } else if (country) {
+            region1 = country;
         }
+
+        if (tzHeader) timezone = tzHeader;
+    }
+
+    // 1.5. Generate Persistent Analysis (Server-Side)
+    let analysis_text: string | null = null;
+    try {
+        const { getDashboardStats } = await import('@/widgets/dashboard/actions/getDashboardStats');
+        const { analyzeScenario } = await import('@/widgets/dashboard/lib/AnalysisEngine');
+
+        // Fetch CURRENT stats: Region Fallback (Region -> Country -> World)
+        // We pass the hierarchy context; the function handles the waterfall.
+        const currentStats = await getDashboardStats({
+            region_lv2: region2 !== 'Unknown' ? region2 : undefined,
+            region_lv0: region0 !== 'Unknown' ? region0 : undefined,
+            region_lv1: region1 !== 'Unknown' ? region1 : undefined,
+        }, timezone);
+
+        // Manually apply this vote to the stats (In-Memory Simulation) for accurate N=1 analysis
+        const isMale = gender === 'male';
+        const isGood = mood === 'good';
+
+        // Clone to avoid mutating if it were a shared object (it's not, but good practice)
+        const nextStats = { ...currentStats };
+        nextStats.total += 1;
+        if (isGood) nextStats.score = Math.round(((nextStats.score * currentStats.total / 100) + 1) / nextStats.total * 100);
+
+        if (isMale) {
+            const oldTotal = nextStats.male.total;
+            const oldGood = Math.round(nextStats.male.score * oldTotal / 100);
+            nextStats.male.total += 1;
+            nextStats.male.score = Math.round(((oldGood + (isGood ? 1 : 0)) / nextStats.male.total) * 100);
+        } else {
+            const oldTotal = nextStats.female.total;
+            const oldGood = Math.round(nextStats.female.score * oldTotal / 100);
+            nextStats.female.total += 1;
+            nextStats.female.score = Math.round(((oldGood + (isGood ? 1 : 0)) / nextStats.female.total) * 100);
+        }
+
+        // Generate Analysis
+        analysis_text = analyzeScenario(gender, mood, nextStats);
+
+    } catch (e) {
+        console.error("Analysis generation failed:", e);
+        // Fallback: DB will store null, client can regenerate or show default
     }
 
     // 2. Insert into DB
@@ -70,9 +124,11 @@ export async function submitVoteAction(
         user_id: userId,
         lat,
         lng,
+        region_lv0: region0,
         region_lv1: region1,
         region_lv2: region2,
-        ip_hash: 'server-action', // Placeholder/TODO
+        ip_hash: 'server-action',
+        analysis_text, // Persist the generated text
     });
 
     if (error) {
@@ -103,7 +159,7 @@ export async function submitVoteAction(
         const { broadcastVote } = await import('../api/broadcastVote');
         // Fire and forget-ish, or await. Awaiting adds latency to the user's "Vote" action.
         // But Server Actions must succeed. Let's await to be safe for now, can optimize later.
-        await broadcastVote(region2 !== 'Unknown' ? region2 : undefined);
+        await broadcastVote(region2 !== 'Unknown' ? region2 : undefined, timezone);
     } catch (e) {
         console.error("Broadcast failed:", e);
         // Don't fail the vote just because broadcast failed

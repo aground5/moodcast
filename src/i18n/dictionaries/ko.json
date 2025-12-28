@@ -35,7 +35,10 @@
         "my_mood_good": "좋음",
         "my_mood_bad": "나쁨",
         "my_mood_suffix": "을 선택했네요.",
-        "region_report_title": "{region} 리포트"
+        "region_report_title": "{region} 리포트",
+        "live_update": "방금 업데이트됨",
+        "share_button": "이 기류 공유하기",
+        "data_lab_title": "데이터 랩"
     },
     "error": {
         "error": "데이터를 분석할 수 없습니다."

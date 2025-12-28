@@ -1,19 +1,32 @@
 import { useTranslations } from 'next-intl';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { DashboardStats } from '../actions/getDashboardStats';
 import { analyzeScenario } from './AnalysisEngine';
 
 type Gender = 'male' | 'female';
 type Mood = 'good' | 'bad';
 
-export function useAnalysis(gender: Gender | null, mood: Mood | null, stats: DashboardStats | null) {
+export function useAnalysis(gender: Gender | null, mood: Mood | null, stats: DashboardStats | null, initialAnalysis?: string) {
     const tDefault = useTranslations('analysis');
 
-    return useMemo(() => {
-        if (!gender || !mood || !stats) return tDefault('error');
+    // Stable State: Initialize with SSR value if present
+    const [stableMessage, setStableMessage] = useState<string | null>(initialAnalysis || null);
 
-        // Use the Dynamic Engine
-        return analyzeScenario(gender, mood, stats);
+    // Only generate ONCE if not provided (Client-side fallback)
+    useMemo(() => {
+        // If we already have a message, don't change it.
+        // This effectively "locks" the first valid analysis.
+        if (stableMessage) return;
 
-    }, [gender, mood, stats, tDefault]);
+        if (!gender || !mood || !stats) {
+            // Not ready yet
+            return;
+        }
+
+        const message = analyzeScenario(gender, mood, stats);
+        setStableMessage(message);
+
+    }, [gender, mood, stats, stableMessage]);
+
+    return stableMessage || tDefault('error');
 }

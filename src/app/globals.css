@@ -2,6 +2,7 @@
 
 @theme {
     --font-sans: var(--font-noto-sans-kr);
+    --font-serif: var(--font-noto-serif-kr);
 }
 
 :root {

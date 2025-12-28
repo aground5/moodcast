@@ -13,9 +13,10 @@ interface HomePageProps {
     savedGender?: 'male' | 'female';
     initialVote?: any; // strict type would be better but keeping it simple for now
     ipRegion?: string;
+    initialAnalysis?: string;
 }
 
-export default function HomePage({ initialStep, savedGender, initialVote, ipRegion }: HomePageProps) {
+export default function HomePage({ initialStep, savedGender, initialVote, ipRegion, initialAnalysis }: HomePageProps) {
     const { step, setStep, setGender, setMood, setRegion, setCoords } = useVoteStore();
 
     useEffect(() => {
@@ -104,9 +105,9 @@ export default function HomePage({ initialStep, savedGender, initialVote, ipRegi
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.5 }}
-                        className="w-full flex justify-center"
+                        className="w-full max-w-sm"
                     >
-                        <Dashboard />
+                        <Dashboard initialAnalysis={initialAnalysis} />
                     </motion.div>
                 )}
             </AnimatePresence>
