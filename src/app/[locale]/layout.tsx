@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Noto_Sans_KR, Noto_Serif_KR } from "next/font/google"; // High quality Korean font
+import { Noto_Sans_KR, Noto_Serif_KR, Geist_Mono } from "next/font/google"; // High quality Korean font
 import "../globals.css";
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
@@ -15,6 +15,11 @@ const notoSerifKr = Noto_Serif_KR({
     subsets: ['latin'],
     weight: ['400', '700'],
     variable: '--font-noto-serif-kr',
+});
+
+const geistMono = Geist_Mono({
+    subsets: ['latin'],
+    variable: '--font-geist-mono',
 });
 
 export const metadata: Metadata = {
@@ -40,7 +45,7 @@ export default async function RootLayout({
 
     return (
         <html lang={locale}>
-            <body className={`${notoSansKr.variable} ${notoSerifKr.variable} font-sans antialiased min-h-screen flex flex-col`}>
+            <body className={`${notoSansKr.variable} ${notoSerifKr.variable} ${geistMono.variable} font-sans antialiased min-h-screen flex flex-col`}>
                 <NextIntlClientProvider messages={messages}>
                     <main className="flex-1">
                         {children}

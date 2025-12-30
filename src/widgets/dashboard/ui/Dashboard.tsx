@@ -111,8 +111,22 @@ export function Dashboard({ initialAnalysis, initialStats }: { initialAnalysis?:
     const [showDataLab, setShowDataLab] = useState(false);
 
     const handleShare = async () => {
+        // Mood Snapshot Logic: Add region params to shared URL to replicate the vibe
+        const shareUrl = new URL(window.location.href);
+
+        // Explicitly set parameters for the Crawler/Receiver to parse
+        // We use 'region' for the display name (e.g. "강남구")
+        // We use 'region_std' for the DB lookup (e.g. "Gangnam-gu")
+        if (region_std) {
+            shareUrl.searchParams.set('region_std', region_std);
+            // Also set as lv2 if we assume it's specific, but region_std is safer generic param
+        }
+        if (regionName && regionName !== tCommon('world')) {
+            shareUrl.searchParams.set('region', regionName);
+        }
+
         const text = t('share_text', { region: regionName });
-        const url = window.location.href;
+        const url = shareUrl.toString();
 
         if (navigator.share) {
             try {
@@ -121,7 +135,6 @@ export function Dashboard({ initialAnalysis, initialStats }: { initialAnalysis?:
                 console.log('Share canceled', err);
             }
         } else {
-            // Fallback
             navigator.clipboard.writeText(`${text} ${url}`);
             alert(t('copy_success'));
         }

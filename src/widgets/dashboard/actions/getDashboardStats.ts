@@ -30,7 +30,7 @@ export async function getDashboardStats(
     const startOfTodayUTC = getStartOfDayUTC(timezone);
 
     // Helper to fetch stats
-    // value = Localized (for display preference)
+    // value = Localized (for display preference) - NOT USED FOR QUERYING ANYMORE
     // valueStd = Standard (for query preference)
     const fetchStats = async (filter: 'lv2' | 'lv1' | 'lv0' | 'global', value?: string, valueStd?: string) => {
         let query = supabase
@@ -38,17 +38,22 @@ export async function getDashboardStats(
             .select('mood, gender, region_lv2, region_lv1, region_lv0, region_std_lv2, region_std_lv1, region_std_lv0')
             .gte('created_at', startOfTodayUTC);
 
-        if (filter === 'lv2') {
-            if (valueStd) query = query.eq('region_std_lv2', valueStd);
-            else if (value) query = query.or(`region_lv2.eq.${value},region_std_lv2.eq.${value}`);
+        // Security Update: Only query by region_std fields using strict equality (.eq)
+        // This prevents query injection risks associated with .or() and string interpolation
+        // and aligns with the requirement that all lookups will be based on standardized names.
+        if (filter === 'lv2' && valueStd) {
+            query = query.eq('region_std_lv2', valueStd);
         }
-        else if (filter === 'lv1') {
-            if (valueStd) query = query.eq('region_std_lv1', valueStd);
-            else if (value) query = query.or(`region_lv1.eq.${value},region_std_lv1.eq.${value}`);
+        else if (filter === 'lv1' && valueStd) {
+            query = query.eq('region_std_lv1', valueStd);
         }
-        else if (filter === 'lv0') {
-            if (valueStd) query = query.eq('region_std_lv0', valueStd);
-            else if (value) query = query.or(`region_lv0.eq.${value},region_std_lv0.eq.${value}`);
+        else if (filter === 'lv0' && valueStd) {
+            query = query.eq('region_std_lv0', valueStd);
+        }
+        else if (filter !== 'global') {
+            // If filter is requested but no valueStd provided, strictly return null.
+            // We no longer support querying by localized name (e.g. region_lv2.eq.강남구)
+            return null;
         }
 
         const { data, error } = await query;
@@ -61,43 +66,63 @@ export async function getDashboardStats(
 
     let result = null;
 
-    // Check Lv2 (District)
-    if (!result && (isValid(context.region_lv2) || isValid(context.region_std_lv2))) {
-        const res = await fetchStats('lv2', context.region_lv2, context.region_std_lv2);
+    // Waterfall Fallback Logic (Lv2 -> Lv1 -> Lv0 -> Global)
+    // If strict lookup fails, we try the parent level.
+
+    // 1. Try Lv2 (District)
+    if (!result && context.region_std_lv2) {
+        const res = await fetchStats('lv2', undefined, context.region_std_lv2);
         if (res && res.data.length > 0) result = res;
     }
 
-    // Check Lv1 (City)
-    if (!result && (isValid(context.region_lv1) || isValid(context.region_std_lv1))) {
-        const res = await fetchStats('lv1', context.region_lv1, context.region_std_lv1);
-        if (res && res.data.length > 0) result = res;
+    // 2. Try Lv1 (City) - Fallback from Lv2 or Direct Request
+    if (!result && (context.region_std_lv1 || context.region_std_lv2)) {
+        // If we strictly have lv1 input, use it.
+        // If not, but we have lv2 input (which failed above), try reusing it as lv1.
+        // This supports "Generic ID" usage where we don't know the level.
+        const target = context.region_std_lv1 || context.region_std_lv2;
+        if (target) {
+            const res = await fetchStats('lv1', undefined, target);
+            if (res && res.data.length > 0) result = res;
+        }
     }
 
-    // Check Lv0 (Country)
-    if (!result && (isValid(context.region_lv0) || isValid(context.region_std_lv0))) {
-        const res = await fetchStats('lv0', context.region_lv0, context.region_std_lv0);
-        if (res && res.data.length > 0) result = res;
+    // 3. Try Lv0 (Country)
+    if (!result && (context.region_std_lv0 || context.region_std_lv2 || context.region_std_lv1)) {
+        // Same logic: Try using any available standard ID as a country code if previous lookups failed.
+        const target = context.region_std_lv0 || context.region_std_lv2 || context.region_std_lv1;
+        if (target) {
+            const res = await fetchStats('lv0', undefined, target);
+            if (res && res.data.length > 0) result = res;
+        }
     }
 
-    // 3. Fallback to Global
+    // 4. Global Fallback
     if (!result) {
         result = await fetchStats('global');
     }
 
     const votes = result?.data || [];
-    // Prefer Localized Value for Display, Fallback to Std
-    const regionLabel = result?.filter && result.filter !== 'global'
-        ? (result.value || result.valueStd || 'Global')
-        : 'Global';
-
     // Extract Standard Region Label (From DB or Input)
     let regionStd = 'Global';
-    if (result?.valueStd) regionStd = result.valueStd; // Trust input std if valid
+    if (result?.valueStd) regionStd = result.valueStd;
     else if (votes.length > 0) {
         const first = votes[0];
         if (result?.filter === 'lv2') regionStd = first.region_std_lv2 || 'Global';
         else if (result?.filter === 'lv1') regionStd = first.region_std_lv1 || 'Global';
         else if (result?.filter === 'lv0') regionStd = first.region_std_lv0 || 'Global';
+    }
+
+    // Extract Localized Region Label (From DB or Input) - Priority for Display
+    let regionLabel = 'Global';
+    if (result?.value) regionLabel = result.value;
+    else if (votes.length > 0 && result?.filter && result.filter !== 'global') {
+        const first = votes[0];
+        if (result.filter === 'lv2') regionLabel = first.region_lv2 || first.region_std_lv2 || 'Global';
+        else if (result.filter === 'lv1') regionLabel = first.region_lv1 || first.region_std_lv1 || 'Global';
+        else if (result.filter === 'lv0') regionLabel = first.region_lv0 || first.region_std_lv0 || 'Global';
+    } else if (result?.valueStd) {
+        regionLabel = result.valueStd;
     }
 
     const total = votes.length;
