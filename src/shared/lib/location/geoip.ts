@@ -24,6 +24,7 @@ export type GeoIPResult = {
         city: string;
         subdivision?: string;
     };
+    nominatimQuery?: string;
 };
 
 export const MAXMIND_SUPPORTED_LOCALES = ['de', 'en', 'es', 'fr', 'ja', 'pt-BR', 'ru', 'zh-CN'];
@@ -57,10 +58,25 @@ export async function lookupIP(ip: string, locale: string = 'en'): Promise<GeoIP
             ? ((subdivisionRaw.names as any)?.[locale] || (subdivisionRaw.names as any)?.['en'])
             : undefined;
 
-        // Standard English Subdivision
         const subdivisionEn = subdivisionRaw
             ? (subdivisionRaw.names as any)?.['en']
             : undefined;
+
+        // Construct Robust Nominatim Query (English)
+        // Format: City, Subdivision 1, Subdivision 2, ..., Country
+        const queryParts: string[] = [];
+        if (cityEn && cityEn !== 'Unknown') queryParts.push(cityEn);
+
+        // Use ALL subdivisions if available
+        if (response.subdivisions && response.subdivisions.length > 0) {
+            response.subdivisions.forEach(sub => {
+                const subName = (sub.names as any)?.['en'];
+                if (subName) queryParts.push(subName);
+            });
+        }
+
+        if (countryEn && countryEn !== 'Unknown') queryParts.push(countryEn);
+        const nominatimQuery = queryParts.join(', ');
 
         return {
             country,
@@ -72,7 +88,8 @@ export async function lookupIP(ip: string, locale: string = 'en'): Promise<GeoIP
                 country: countryEn,
                 city: cityEn,
                 subdivision: subdivisionEn
-            }
+            },
+            nominatimQuery
         };
     } catch (e) {
         // IP not found or invalid

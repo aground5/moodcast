@@ -157,6 +157,139 @@ export async function detectLocationFromHeaders(
     };
 }
 
+/**
+ * V2: Detects location from Headers/IP and enriches it via Nominatim Search.
+ * This ensures accurate Admin Hierarchy (Level 4/5) even for IP-based users.
+ */
+export async function detectLocationFromHeadersV2(
+    locale: string = 'ko',
+    options: { skipLocalization?: boolean } = { skipLocalization: true }
+): Promise<MoodcastLocation> {
+    const headerStore = await headers();
+
+    // 1. Initial Logic (Same as V1): Get rough location from MaxMind/Headers
+    let ip = headerStore.get('x-forwarded-for') || '127.0.0.1';
+    if (ip.includes(',')) ip = ip.split(',')[0].trim();
+
+    let initialCity = 'Unknown';
+    let initialSubdivision = 'Unknown';
+    let initialCountryCode = 'Unknown';
+    let timezone = 'Asia/Seoul';
+    let maxmindNominatimQuery: string | undefined = undefined;
+
+    // Try MaxMind
+    if (ip && ip !== '127.0.0.1' && ip !== '::1') {
+        const geoResult = await lookupIP(ip, 'en'); // Use EN for reliable search queries
+        if (geoResult) {
+            initialCity = geoResult.city || 'Unknown';
+            initialSubdivision = geoResult.subdivision || 'Unknown';
+            initialCountryCode = geoResult.countryCode || 'Unknown';
+            timezone = geoResult.timezone || 'Asia/Seoul';
+            maxmindNominatimQuery = geoResult.nominatimQuery;
+        }
+    }
+
+    // Fallback to Headers
+    if (initialCity === 'Unknown') {
+        const vCity = headerStore.get('x-vercel-ip-city') || headerStore.get('cf-ipcity');
+        const vCountry = headerStore.get('x-vercel-ip-country') || headerStore.get('cf-ipcountry');
+        const vTz = headerStore.get('x-vercel-ip-timezone') || headerStore.get('cf-timezone');
+
+        if (vCity) initialCity = vCity;
+        if (vCountry) initialCountryCode = vCountry;
+        if (vTz) timezone = vTz;
+    }
+
+    // Default Result (V1 Style Fallback)
+    let finalResult: MoodcastLocation = {
+        region0: initialCountryCode,
+        region1: initialCity,
+        region2: 'Unknown',
+        timezone,
+        std: {
+            region0: initialCountryCode,
+            region1: initialCity,
+            region2: 'Unknown'
+        }
+    };
+
+    // 2. Nominatim Enrichment (V2 Logic)
+    // Only proceed if we have a valid city/country to search
+    if (initialCity !== 'Unknown') {
+        try {
+            // Construct precise query: Use MaxMind's robust query if available
+            let query = '';
+            if (maxmindNominatimQuery) {
+                query = maxmindNominatimQuery;
+            } else {
+                const parts = [initialCity];
+                if (initialSubdivision !== 'Unknown') parts.push(initialSubdivision);
+                if (initialCountryCode !== 'Unknown') parts.push(initialCountryCode);
+                query = parts.join(', ');
+            }
+
+            // Fetch Localized & Standard concurrently
+            // Note: If options.skipLocalization is true, we might skip the localized fetch 
+            // BUT V2 purpose is accuracy. If we skip, we revert to V1.
+            // Let's assume V2 implies we want the high-quality data (maybe cached).
+            // Users calling V2 likely accept the overhead or we rely on cache.
+
+            // However, keep skipLocalization check for consistency if needed. 
+            // If skip used, maybe just do V1? 
+            // Let's TRY to fetch. Key is Cache.
+
+            const [addressEncoded, addressEn] = await Promise.all([
+                fetchGeocodeRaw(query, locale),
+                fetchGeocodeRaw(query, 'en')
+            ]);
+
+            if (addressEncoded) {
+                const mapped = mapNominatimAddress(addressEncoded);
+
+                // Granularity Check:
+                // Normalize strings to handle accents (e.g. "Hanoi" vs "Hà Nội")
+                const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+
+                const foundNameRaw = (addressEncoded.name || '');
+                const region1NameRaw = (mapped.region1 || '');
+
+                const foundNorm = normalize(foundNameRaw);
+                const region1Norm = normalize(region1NameRaw);
+
+                // If Name implies we found the Region itself (starts with or equals, ignoring case/accents/spaces)
+                // e.g. "Seoul (Station)" -> "seoulstation" startsWith "seoul"
+                // e.g. "Hanoi" -> "hanoi" startsWith "hanoi" (from "Hà Nội" -> "hanoi")
+                if (foundNorm && region1Norm && (foundNorm === region1Norm || foundNorm.startsWith(region1Norm))) {
+                    mapped.region2 = 'Unknown';
+                }
+
+                // Merge into final result
+                finalResult = {
+                    ...finalResult,
+                    region0: mapped.region0 || finalResult.region0,
+                    region1: mapped.region1 || finalResult.region1,
+                    region2: mapped.region2 || finalResult.region2,
+                };
+            }
+
+            if (addressEn) {
+                const mappedStd = mapNominatimAddress(addressEn);
+                finalResult.std = {
+                    region0: mappedStd.region0 || finalResult.std.region0,
+                    region1: mappedStd.region1 || finalResult.std.region1,
+                    region2: mappedStd.region2 || finalResult.std.region2
+                };
+            }
+
+        } catch (e) {
+            console.error("V2 Header Location Detection Failed:", e);
+            // Fallback to finalResult (V1 data) is automatic
+        }
+    }
+
+    return finalResult;
+}
+
 // Helper: In header-only mode, we often lack specific Lv2 data (District).
 // We treat City as 'region1' primarily.
 // If the user is in a big city (Seoul), header might say city='Seoul'.
@@ -174,7 +307,7 @@ function clickToRegion2(city: string): string {
  * Lv1 (City)    = city (primary) > town > village > province > state
  * Considers country-specific hierarchy rules defined in USE_SUBDIVISION_AS_REGION1.
  */
-function mapNominatimAddress(addr: NominatimAddress): Partial<MoodcastLocation> {
+export function mapNominatimAddress(addr: NominatimAddress): Partial<MoodcastLocation> {
     // geocodejson doesn't always have country_code in root props, sometimes it's implied.
     // However, geocoding.ts custom interface says we might have it or check raw? 
     // Nominatim geocodejson usually has `country_code` field.
