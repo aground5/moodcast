@@ -9,25 +9,22 @@ import { Dashboard } from '@/widgets/dashboard/ui/Dashboard';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect } from 'react';
 
-import { refineLocationAction } from '@/features/location/actions/refineLocation';
 import { getLocationDisplayName } from '@/shared/lib/location/display';
 
 interface HomePageProps {
     initialStep: 'gender' | 'result';
     savedGender?: 'male' | 'female';
     initialVote?: any;
-    ipRegion?: string;
-    ipRegionStd?: string; // Standard English Region (Country)
-    initialCountry?: string;
-    initialCity?: string; // Localized City for Refinement
-    initialCityStd?: string; // Standard City
+    initialLv0?: string; // region0 (Local) "대한민국"
+    initialStdLv0?: string; // region0 (Std) "South Korea"
     initialAnalysis?: string;
     initialStats?: any; // DashboardStats
 }
 
+
 import { useTranslations, useLocale } from 'next-intl';
 
-export default function HomePage({ initialStep, savedGender, initialVote, ipRegion, ipRegionStd, initialCountry, initialCity, initialCityStd, initialAnalysis, initialStats }: HomePageProps) {
+export default function HomePage({ initialStep, savedGender, initialVote, initialLv0, initialStdLv0, initialAnalysis, initialStats }: HomePageProps) {
     const t = useTranslations('dashboard'); // Assuming we need translations? Or just for locale.
     const locale = useLocale();
     const { step, setStep, setGender, setMood, setRegion, setCoords } = useVoteStore();
@@ -37,32 +34,44 @@ export default function HomePage({ initialStep, savedGender, initialVote, ipRegi
         if (initialVote) {
             setGender(initialVote.gender);
             setMood(initialVote.mood);
-            const displayRegion = getLocationDisplayName({
-                region_lv2: initialVote.region_lv2,
-                region_lv1: initialVote.region_lv1,
-                region_lv0: initialVote.region_lv0
-            }, initialVote.region_lv2 || 'Unknown');
-
-            // Extract standard region from initialVote if available
-            // Note: DB columns are region_std_lv*
-            // Logic: prefer lv2 -> lv1 -> lv0
-            const stdRegion = initialVote.region_std_lv2 || initialVote.region_std_lv1 || initialVote.region_std_lv0;
-            setRegion(displayRegion, stdRegion);
+            setRegion({
+                lv0: initialVote.region_lv0,
+                lv1: initialVote.region_lv1,
+                lv2: initialVote.region_lv2,
+                std_lv0: initialVote.region_std_lv0,
+                std_lv1: initialVote.region_std_lv1,
+                std_lv2: initialVote.region_std_lv2
+            });
         }
         else {
             if (savedGender) setGender(savedGender);
-            if (ipRegion) setRegion(ipRegion, ipRegionStd);
+            if (initialLv0) setRegion({
+                lv0: initialLv0,
+                lv1: 'Unknown',
+                lv2: 'Unknown',
+                std_lv0: initialStdLv0,
+                std_lv1: 'Unknown',
+                std_lv2: 'Unknown'
+            });
 
-            // Refine with IP (Start immediately)
-            if (initialCity && initialCountry) {
-                refineLocationAction(initialCity, initialCountry)
+            // Refine with Server Action (Full localization)
+            // Call detectLocationFromHeaders with skipLocalization: false for full details
+            import('@/shared/lib/location/server').then(({ detectLocationFromHeaders }) => {
+                detectLocationFromHeaders(locale, { skipLocalization: false })
                     .then((refined) => {
-                        if (refined && refined.localized && refined.localized !== 'Unknown') {
-                            setRegion(refined.localized, refined.std || ipRegionStd);
+                        if (refined && refined.region1 !== 'Unknown') {
+                            setRegion({
+                                lv0: refined.region0,
+                                lv1: refined.region1,
+                                lv2: refined.region2,
+                                std_lv0: refined.std?.region0 || 'Unknown',
+                                std_lv1: refined.std?.region1 || 'Unknown',
+                                std_lv2: refined.std?.region2 || 'Unknown',
+                            });
                         }
                     })
-                    .catch((e) => console.error(e));
-            }
+                    .catch((e) => console.error('Header Refinement Failed:', e));
+            });
         }
 
         if (initialStep === 'result') {
@@ -89,17 +98,17 @@ export default function HomePage({ initialStep, savedGender, initialVote, ipRegi
                             const { detectLocationFromGPS } = await import('@/shared/lib/location/index');
                             const location = await detectLocationFromGPS(lat, lng, locale);
 
+                            console.log(location)
+
                             if (location) {
-                                const displayRegion = getLocationDisplayName({
-                                    region_lv0: location.region0,
-                                    region_lv1: location.region1,
-                                    region_lv2: location.region2
-                                }, location.region2 || 'Unknown');
-
-                                // Standard Region Logic: Priority Lv2 > Lv1 > Lv0
-                                const stdRegion = location.std?.region2 || location.std?.region1 || location.std?.region0;
-
-                                setRegion(displayRegion, stdRegion);
+                                setRegion({
+                                    lv0: location.region0,
+                                    lv1: location.region1,
+                                    lv2: location.region2,
+                                    std_lv0: location.std?.region0,
+                                    std_lv1: location.std?.region1,
+                                    std_lv2: location.std?.region2
+                                });
                             }
                         }
                     },
@@ -131,7 +140,7 @@ export default function HomePage({ initialStep, savedGender, initialVote, ipRegi
             if (watchId !== null) navigator.geolocation.clearWatch(watchId);
             if (permissionStatus) permissionStatus.onchange = null;
         };
-    }, [initialStep, savedGender, initialVote, ipRegion, setStep, setGender, setMood, setRegion, setCoords, locale, initialCity, initialCountry]);
+    }, [initialStep, savedGender, initialVote, initialLv0, setStep, setGender, setMood, setRegion, setCoords, locale]);
 
     // ... render ...
     const isReturningUser = !!savedGender;
@@ -150,7 +159,7 @@ export default function HomePage({ initialStep, savedGender, initialVote, ipRegi
                         transition={{ duration: 0.5 }}
                         className="flex flex-col items-center w-full"
                     >
-                        <LandingHeader isReturningUser={isReturningUser} initialRegion={ipRegion} />
+                        <LandingHeader isReturningUser={isReturningUser} initialRegion={initialLv0} />
                         <GenderSelector />
                     </motion.div>
                 )}
@@ -167,7 +176,7 @@ export default function HomePage({ initialStep, savedGender, initialVote, ipRegi
                         {/* ... We need to verify imports for LandingHeader/GenderSelector/MoodSelector if I replace whole file ... */}
                         {/* Careful replacing huge blocks. I'll target specific blocks. */}
                         {/* Show MoodHeader only if the user is returning (started at this step). New users should focus on the question. */}
-                        {isReturningUser && <MoodHeader initialRegion={ipRegion} />}
+                        {isReturningUser && <MoodHeader initialRegion={initialLv0} />}
                         <MoodSelector />
                     </motion.div>
                 )}

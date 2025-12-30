@@ -3,7 +3,8 @@
 import { createAdminClient } from '@/shared/lib/supabase/admin';
 import { cookies } from 'next/headers';
 import { getLocale, getTranslations } from 'next-intl/server';
-import { detectLocationFromGPS, detectLocationFromHeaders } from '@/shared/lib/location';
+import { detectLocationFromGPS } from '@/shared/lib/location';
+import { detectLocationFromHeaders } from '@/shared/lib/location/server';
 import { getDashboardStats } from '@/widgets/dashboard/actions/getDashboardStats';
 import { analyzeScenario } from '@/widgets/dashboard/lib/AnalysisEngine';
 import { broadcastVote } from '../api/broadcastVote';
@@ -13,12 +14,22 @@ type VoteResult = {
     error?: string;
     region?: string;
     region_std?: string;
+    lv0?: string;
+    lv1?: string;
+    lv2?: string;
+    std_lv0?: string;
+    std_lv1?: string;
+    std_lv2?: string;
 };
 
 export async function submitVoteAction(
     gender: 'male' | 'female',
     mood: 'good' | 'bad',
-    coords?: { lat: number; lng: number }
+    coords?: { lat: number; lng: number },
+    location?: {
+        lv0?: string | null; lv1?: string | null; lv2?: string | null;
+        std_lv0?: string | null; std_lv1?: string | null; std_lv2?: string | null;
+    }
 ): Promise<VoteResult> {
     const cookieStore = await cookies();
     const userId = cookieStore.get('moodcast_uid')?.value;
@@ -28,14 +39,14 @@ export async function submitVoteAction(
     }
 
     // 1. Determine Location & Timezone
-    let region0 = 'Unknown';
-    let region1 = 'Unknown';
-    let region2 = 'Unknown';
+    let region0 = location?.lv0 || 'Unknown';
+    let region1 = location?.lv1 || 'Unknown';
+    let region2 = location?.lv2 || 'Unknown';
 
     // Standard Names
-    let region0En = 'Unknown';
-    let region1En = 'Unknown';
-    let region2En = 'Unknown';
+    let region0En = location?.std_lv0 || 'Unknown';
+    let region1En = location?.std_lv1 || 'Unknown';
+    let region2En = location?.std_lv2 || 'Unknown';
 
     const lat = coords?.lat;
     const lng = coords?.lng;
@@ -209,7 +220,13 @@ export async function submitVoteAction(
 
     return {
         success: true,
-        region: region2 !== 'Unknown' ? region2 : region1, // Display Name
-        region_std: region2En !== 'Unknown' ? region2En : region1En // Standard Name
+        region: region2 !== 'Unknown' ? region2 : region1 !== 'Unknown' ? region1 : region0, // Display Name
+        region_std: region2En !== 'Unknown' ? region2En : region1En !== 'Unknown' ? region1En : region0En, // Standard Name
+        lv0: region0 !== 'Unknown' ? region0 : undefined,
+        lv1: region1 !== 'Unknown' ? region1 : undefined,
+        lv2: region2 !== 'Unknown' ? region2 : undefined,
+        std_lv0: region0En !== 'Unknown' ? region0En : undefined,
+        std_lv1: region1En !== 'Unknown' ? region1En : undefined,
+        std_lv2: region2En !== 'Unknown' ? region2En : undefined,
     };
 }

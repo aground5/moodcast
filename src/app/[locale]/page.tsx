@@ -19,32 +19,42 @@ export async function generateMetadata(
     const { locale } = params;
     const t = await getTranslations({ locale, namespace: 'metadata' });
 
-    // 1. Determine Region (Priority: Query Param -> IP Header -> Default)
-    let regionName = searchParams.region as string;
-    let regionStd = searchParams.region_std as string | undefined;
+    // 1. Determine Region (Priority: lv0/1/2 Snapshot -> IP Header -> Default)
+    const lv0 = searchParams.lv0 as string;
+    const lv1 = searchParams.lv1 as string;
+    const lv2 = searchParams.lv2 as string;
 
-    if (!regionName) {
-        // Fallback to IP detection if no snapshot param
-        const { detectLocationFromHeaders } = await import('@/shared/lib/location');
+    let regionName = '';
+    let regionStd = '';
+
+    if (lv0 || lv1 || lv2) {
+        // Use Stats to resolve localized name for the snapshot
+        const { getDashboardStats } = await import('@/widgets/dashboard/actions/getDashboardStats');
+        const stats = await getDashboardStats({
+            region_std_lv0: lv0,
+            region_std_lv1: lv1,
+            region_std_lv2: lv2
+        });
+        regionName = stats.region;
+        regionStd = stats.region_std || '';
+    } else {
+        // Fallback to IP detection
+        const { detectLocationFromHeaders } = await import('@/shared/lib/location/server');
         const { region1, std } = await detectLocationFromHeaders(locale);
         regionName = region1 !== 'Unknown' ? region1 : '서울';
-        regionStd = std?.region1 !== 'Unknown' ? std.region1 : undefined; // Optional
+        regionStd = std?.region1 || '';
     }
 
-    // 2. Fetch Stats for Score (Optional, but adds nice context to title)
-    // If it's a Snapshot, we might want to respect the snapshot vibe?
-    // But generating real-time score for the title is better than static.
-    // For OG Image, we pass params to /api/og.
-
-    // 3. Construct OG Image URL
+    // 2. Construct OG Image URL
     const ogUrl = new URL(`${process.env.NEXT_PUBLIC_BASE_URL}/api/og`);
-    if (regionName) ogUrl.searchParams.set('region', regionName);
-    if (regionStd) ogUrl.searchParams.set('region_std', regionStd);
+    if (lv0) ogUrl.searchParams.set('lv0', lv0);
+    if (lv1) ogUrl.searchParams.set('lv1', lv1);
+    if (lv2) ogUrl.searchParams.set('lv2', lv2);
 
-    // Pass precise levels if available (Snapshot scenario)
-    if (searchParams.lv0) ogUrl.searchParams.set('lv0', searchParams.lv0 as string);
-    if (searchParams.lv1) ogUrl.searchParams.set('lv1', searchParams.lv1 as string);
-    if (searchParams.lv2) ogUrl.searchParams.set('lv2', searchParams.lv2 as string);
+    const url = new URL(`${process.env.NEXT_PUBLIC_BASE_URL}/${locale}`);
+    if (lv0) url.searchParams.set('lv0', lv0);
+    if (lv1) url.searchParams.set('lv1', lv1);
+    if (lv2) url.searchParams.set('lv2', lv2);
 
     // If no params, /api/og defaults to fallback logic (Global or Seoul ip?)
 
@@ -54,7 +64,7 @@ export async function generateMetadata(
         openGraph: {
             title: `Moodcast | ${regionName} Vibe`,
             description: t('og_description'),
-            url: `${process.env.NEXT_PUBLIC_BASE_URL}/${locale}?region=${regionName}`,
+            url: url.toString(),
             siteName: 'Moodcast',
             images: [
                 {
@@ -89,26 +99,25 @@ export default async function Page({ searchParams }: Props) {
 
     // 3. IP Location & Timezone (for initial display)
     const locale = await getLocale();
-    const { detectLocationFromHeaders } = await import('@/shared/lib/location');
+    const { detectLocationFromHeaders } = await import('@/shared/lib/location/server');
     const { timezone, region1, region0, std } = await detectLocationFromHeaders(locale);
 
     // Initial display regions
-    // Snapshot Logic: If URL has params, use them as priority Default
-    const snapshotRegion = searchParams.region as string;
-    const snapshotRegionStd = searchParams.region_std as string;
+    // Snapshot Logic: If URL has hierarchical params, use them as priority
+    const slv0 = searchParams.lv0 as string;
+    const slv1 = searchParams.lv1 as string;
+    const slv2 = searchParams.lv2 as string;
 
-    let ipRegion = snapshotRegion || (region0 !== 'Unknown' ? region0 : "대한민국");
-    // We pass standard names for refinement & consistency
-    let initialCity = snapshotRegion || (region1 !== 'Unknown' ? region1 : undefined);
-    let initialCityStd = snapshotRegionStd || (std?.region1 !== 'Unknown' ? std.region1 : undefined);
-    let ipRegionStd = std?.region0 !== 'Unknown' ? std.region0 : "South Korea";
+    const hasSnapshot = !!(slv0 || slv1 || slv2);
+    let initialStats: any = null;
 
-    // If snapshot is detailed (city level), ensuring it flows down
-    // Actually HomePage takes ipRegion as "Country/Broad" and initialCity as "Specific"
-    // If snapshotRegion is "Gangnam-gu", we should probably pass it as initialCity.
-    if (snapshotRegion) {
-        initialCity = snapshotRegion;
-        // If we have snapshot, we display it.
+    if (hasSnapshot) {
+        const { getDashboardStats } = await import('@/widgets/dashboard/actions/getDashboardStats');
+        initialStats = await getDashboardStats({
+            region_std_lv0: slv0,
+            region_std_lv1: slv1,
+            region_std_lv2: slv2
+        }, timezone);
     }
 
     // 4. Optimization: Check Cookie Timestamp (Timezone Aware)
@@ -148,12 +157,11 @@ export default async function Page({ searchParams }: Props) {
     const savedGender = cookieStore.get('moodcast_gender')?.value as 'male' | 'female' | undefined;
     const initialStep = hasVoted ? 'result' : 'gender';
 
-    // 4. SSR Analysis & Stats
     let initialAnalysis: string | undefined;
-    let initialStats: any = null; // Type: DashboardStats
 
     if (hasVoted && initialVote) {
         const { getDashboardStats } = await import('@/widgets/dashboard/actions/getDashboardStats');
+        initialAnalysis = initialVote.analysis_text || undefined;
         initialStats = await getDashboardStats({
             region_lv2: initialVote.region_lv2 || undefined,
             region_lv1: initialVote.region_lv1 || undefined,
@@ -162,6 +170,8 @@ export default async function Page({ searchParams }: Props) {
             region_std_lv1: initialVote.region_std_lv1 || undefined,
             region_std_lv0: initialVote.region_std_lv0 || undefined
         }, timezone);
+    } else if (hasSnapshot && !initialStats) {
+        // Pre-fetched above for snapshot, ensuring it's available
     }
 
     return (
@@ -170,11 +180,8 @@ export default async function Page({ searchParams }: Props) {
                 initialStep={initialStep}
                 savedGender={savedGender}
                 initialVote={initialVote}
-                ipRegion={ipRegion}
-                ipRegionStd={ipRegionStd}
-                initialCountry={region0}
-                initialCity={initialCity}
-                initialCityStd={initialCityStd}
+                initialLv0={region0}
+                initialStdLv0={std?.region0}
                 initialAnalysis={initialAnalysis}
                 initialStats={initialStats}
             />
@@ -186,8 +193,8 @@ export default async function Page({ searchParams }: Props) {
                     __html: JSON.stringify({
                         "@context": "https://schema.org",
                         "@type": "Dataset",
-                        "name": `Moodcast Real-time Vibe Index - ${initialStats?.region || ipRegion}`,
-                        "description": `Real-time sentiment analysis report for ${initialStats?.region_std || ipRegionStd}`,
+                        "name": `Moodcast Real-time Vibe Index - ${initialStats?.region || region0}`,
+                        "description": `Real-time sentiment analysis report for ${initialStats?.region_std || std?.region0}`,
                         "variableMeasured": "Happiness Index",
                         "value": `${initialStats?.score || 0}%`,
                         "datePublished": new Date().toISOString(),

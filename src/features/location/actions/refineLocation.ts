@@ -25,5 +25,10 @@ export async function refineLocationAction(city: string, country: string) {
         else if (resultEn.region1 && resultEn.region1 !== 'Unknown') std = resultEn.region1;
     }
 
-    return { localized, std };
+    return {
+        localized,
+        std,
+        levels: result,
+        stdLevels: resultEn
+    };
 }

@@ -47,15 +47,12 @@ export async function GET(request: NextRequest) {
         return res.arrayBuffer();
     });
 
-    // 2. Parse Region Parameters
-    const region = searchParams.get('region') || '서울';
-    const regionStd = searchParams.get('region_std') || undefined;
-
+    // 2. Parse Region Parameters (lv0=Country, lv1=City, lv2=District)
     const lv0 = searchParams.get('lv0') || undefined;
     const lv1 = searchParams.get('lv1') || undefined;
-    const lv2 = searchParams.get('lv2') || regionStd || undefined; // Use regionStd as lv2 default if missing
+    const lv2 = searchParams.get('lv2') || undefined;
 
-    // 3. Data Fetching
+    // 3. Data Fetching via V2 Logic (Waterfall lookup)
     const stats = await getDashboardStats({
         region_std_lv2: lv2,
         region_std_lv1: lv1,

@@ -111,19 +111,16 @@ export function Dashboard({ initialAnalysis, initialStats }: { initialAnalysis?:
     const [showDataLab, setShowDataLab] = useState(false);
 
     const handleShare = async () => {
+        const { region_std_lv0, region_std_lv1, region_std_lv2, region_std } = useVoteStore.getState();
         // Mood Snapshot Logic: Add region params to shared URL to replicate the vibe
         const shareUrl = new URL(window.location.href);
 
-        // Explicitly set parameters for the Crawler/Receiver to parse
-        // We use 'region' for the display name (e.g. "강남구")
-        // We use 'region_std' for the DB lookup (e.g. "Gangnam-gu")
-        if (region_std) {
-            shareUrl.searchParams.set('region_std', region_std);
-            // Also set as lv2 if we assume it's specific, but region_std is safer generic param
-        }
-        if (regionName && regionName !== tCommon('world')) {
-            shareUrl.searchParams.set('region', regionName);
-        }
+        if (region_std_lv0) shareUrl.searchParams.set('lv0', region_std_lv0);
+        if (region_std_lv1) shareUrl.searchParams.set('lv1', region_std_lv1);
+        if (region_std_lv2) shareUrl.searchParams.set('lv2', region_std_lv2);
+        else if (region_std) shareUrl.searchParams.set('lv2', region_std);
+
+        // Metadata will now resolve the display name via stats lookup
 
         const text = t('share_text', { region: regionName });
         const url = shareUrl.toString();

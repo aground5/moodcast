@@ -18,6 +18,7 @@ export function MoodSelector() {
     const holdTimer = useRef<NodeJS.Timeout | null>(null);
 
     const triggerVote = async (mood: 'good' | 'bad') => {
+        const { gender, region_lv0, region_lv1, region_lv2, region_std_lv0, region_std_lv1, region_std_lv2 } = useVoteStore.getState();
         if (!gender || isSubmitting) return;
 
         // Final Vibrate on Submit
@@ -29,9 +30,27 @@ export function MoodSelector() {
         setMood(mood);
 
         try {
-            const result = await submitVote(gender, mood, coords || undefined);
+            const result = await submitVote(gender, mood, coords || undefined, {
+                lv0: region_lv0,
+                lv1: region_lv1,
+                lv2: region_lv2,
+                std_lv0: region_std_lv0,
+                std_lv1: region_std_lv1,
+                std_lv2: region_std_lv2,
+            });
+
             if (result.region) {
-                setRegion(result.region, result.region_std);
+                // The server action returns region and region_std based on the most specific level it resolved.
+                // But we want to keep all levels in the store. 
+                // Currently setRegion takes an object.
+                setRegion({
+                    lv0: result.lv0 || region_lv0 || undefined,
+                    lv1: result.lv1 || region_lv1 || undefined,
+                    lv2: result.lv2 || region_lv2 || undefined,
+                    std_lv0: result.std_lv0 || region_std_lv0 || undefined,
+                    std_lv1: result.std_lv1 || region_std_lv1 || undefined,
+                    std_lv2: result.std_lv2 || region_std_lv2 || undefined,
+                });
             }
             setStep('result');
         } catch (e) {

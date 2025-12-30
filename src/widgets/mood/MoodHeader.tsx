@@ -9,10 +9,12 @@ interface MoodHeaderProps {
 
 export function MoodHeader({ initialRegion }: MoodHeaderProps) {
     const t = useTranslations('vote.header');
-    const { region } = useVoteStore();
+    const common = useTranslations('common');
+    const { region, region_std } = useVoteStore();
 
     // Prioritize Store -> Server Prop -> Hard Fallback
-    const displayRegion = region || initialRegion || "서울";
+    let displayRegion = region || initialRegion || "서울";
+    if (region_std == 'global') displayRegion = common('world');
 
     return (
         <div className="flex flex-col items-center justify-center gap-6 text-center px-4 mb-4">
