@@ -57,5 +57,9 @@
     "common": {
         "world": "전세계",
         "unknown": "알 수 없음"
+    },
+    "metadata": {
+        "description": "{region}의 실시간 감정을 확인해보세요.",
+        "og_description": "지금 이 지역의 기분은 어떨까요? 당신의 기분을 공유하고 지역 사람들과 동기화하세요."
     }
 }

@@ -18,6 +18,7 @@ export async function generateMetadata(
 ): Promise<Metadata> {
     const { locale } = params;
     const t = await getTranslations({ locale, namespace: 'metadata' });
+    const common = await getTranslations({ locale, namespace: 'common' });
 
     // 1. Determine Region (Priority: lv0/1/2 Snapshot -> IP Header -> Default)
     const lv0 = searchParams.lv0 as string;
@@ -40,9 +41,14 @@ export async function generateMetadata(
     } else {
         // Fallback to IP detection
         const { detectLocationFromHeaders } = await import('@/shared/lib/location/server');
-        const { region1, std } = await detectLocationFromHeaders(locale);
-        regionName = region1 !== 'Unknown' ? region1 : '서울';
-        regionStd = std?.region1 || '';
+        const { timezone, region1, region0, std } = await detectLocationFromHeaders(locale);
+        regionName = region0;
+        regionStd = std?.region0 || '';
+    }
+
+    if (regionStd == 'Unknown') {
+        regionStd = 'Global'
+        regionName = common('world');
     }
 
     // 2. Construct OG Image URL
@@ -163,12 +169,12 @@ export default async function Page({ searchParams }: Props) {
         const { getDashboardStats } = await import('@/widgets/dashboard/actions/getDashboardStats');
         initialAnalysis = initialVote.analysis_text || undefined;
         initialStats = await getDashboardStats({
-            region_lv2: initialVote.region_lv2 || undefined,
-            region_lv1: initialVote.region_lv1 || undefined,
-            region_lv0: initialVote.region_lv0 || undefined,
-            region_std_lv2: initialVote.region_std_lv2 || undefined,
-            region_std_lv1: initialVote.region_std_lv1 || undefined,
-            region_std_lv0: initialVote.region_std_lv0 || undefined
+            region_lv2: initialVote.region_lv2 !== 'Unknown' ? initialVote.region_lv2 : undefined,
+            region_lv1: initialVote.region_lv1 !== 'Unknown' ? initialVote.region_lv1 : undefined,
+            region_lv0: initialVote.region_lv0 !== 'Unknown' ? initialVote.region_lv0 : undefined,
+            region_std_lv2: initialVote.region_std_lv2 !== 'Unknown' ? initialVote.region_std_lv2 : undefined,
+            region_std_lv1: initialVote.region_std_lv1 !== 'Unknown' ? initialVote.region_std_lv1 : undefined,
+            region_std_lv0: initialVote.region_std_lv0 !== 'Unknown' ? initialVote.region_std_lv0 : undefined
         }, timezone);
     } else if (hasSnapshot && !initialStats) {
         // Pre-fetched above for snapshot, ensuring it's available

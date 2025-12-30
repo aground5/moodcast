@@ -1,6 +1,7 @@
 'use server';
 
 import { createAdminClient } from '@/shared/lib/supabase/admin';
+import { getStartOfDayUTC } from '@/shared/lib/date/timezone';
 
 export interface DashboardStats {
     score: number;
@@ -17,8 +18,6 @@ export interface DashboardStats {
     };
 }
 
-import { getStartOfDayUTC } from '@/shared/lib/date/timezone';
-
 export async function getDashboardStats(
     context: {
         region_lv2?: string; region_lv0?: string; region_lv1?: string;
@@ -30,17 +29,13 @@ export async function getDashboardStats(
     const startOfTodayUTC = getStartOfDayUTC(timezone);
 
     // Helper to fetch stats
-    // value = Localized (for display preference) - NOT USED FOR QUERYING ANYMORE
-    // valueStd = Standard (for query preference)
-    const fetchStats = async (filter: 'lv2' | 'lv1' | 'lv0' | 'global', value?: string, valueStd?: string) => {
+    // We only support querying by Standard English Names now
+    const fetchStats = async (filter: 'lv2' | 'lv1' | 'lv0' | 'global', valueStd?: string) => {
         let query = supabase
             .from('mood_votes')
             .select('mood, gender, region_lv2, region_lv1, region_lv0, region_std_lv2, region_std_lv1, region_std_lv0')
             .gte('created_at', startOfTodayUTC);
 
-        // Security Update: Only query by region_std fields using strict equality (.eq)
-        // This prevents query injection risks associated with .or() and string interpolation
-        // and aligns with the requirement that all lookups will be based on standardized names.
         if (filter === 'lv2' && valueStd) {
             query = query.eq('region_std_lv2', valueStd);
         }
@@ -51,80 +46,38 @@ export async function getDashboardStats(
             query = query.eq('region_std_lv0', valueStd);
         }
         else if (filter !== 'global') {
-            // If filter is requested but no valueStd provided, strictly return null.
-            // We no longer support querying by localized name (e.g. region_lv2.eq.강남구)
-            return null;
+            return null; // Invalid call
         }
 
         const { data, error } = await query;
         if (error || !data) return null;
-        return { data, filter, value, valueStd };
+        return { data, filter, valueStd };
     };
-
-    // Strict priority check
-    const isValid = (val?: string) => val && val !== 'Unknown' && val.trim() !== '';
 
     let result = null;
 
-    // Waterfall Fallback Logic (Lv2 -> Lv1 -> Lv0 -> Global)
-    // If strict lookup fails, we try the parent level.
-
     // 1. Try Lv2 (District)
-    if (!result && context.region_std_lv2) {
-        const res = await fetchStats('lv2', undefined, context.region_std_lv2);
-        if (res && res.data.length > 0) result = res;
+    if (context.region_std_lv2) {
+        result = await fetchStats('lv2', context.region_std_lv2);
     }
 
     // 2. Try Lv1 (City) - Fallback from Lv2 or Direct Request
-    if (!result && (context.region_std_lv1 || context.region_std_lv2)) {
-        // If we strictly have lv1 input, use it.
-        // If not, but we have lv2 input (which failed above), try reusing it as lv1.
-        // This supports "Generic ID" usage where we don't know the level.
-        const target = context.region_std_lv1 || context.region_std_lv2;
-        if (target) {
-            const res = await fetchStats('lv1', undefined, target);
-            if (res && res.data.length > 0) result = res;
-        }
+    // Only if previous attempt failed to find data
+    if ((!result || result.data.length === 0) && context.region_std_lv1) {
+        result = await fetchStats('lv1', context.region_std_lv1);
     }
 
     // 3. Try Lv0 (Country)
-    if (!result && (context.region_std_lv0 || context.region_std_lv2 || context.region_std_lv1)) {
-        // Same logic: Try using any available standard ID as a country code if previous lookups failed.
-        const target = context.region_std_lv0 || context.region_std_lv2 || context.region_std_lv1;
-        if (target) {
-            const res = await fetchStats('lv0', undefined, target);
-            if (res && res.data.length > 0) result = res;
-        }
+    if ((!result || result.data.length === 0) && context.region_std_lv0) {
+        result = await fetchStats('lv0', context.region_std_lv0);
     }
 
     // 4. Global Fallback
-    if (!result) {
+    if (!result || result.data.length === 0) {
         result = await fetchStats('global');
     }
 
     const votes = result?.data || [];
-    // Extract Standard Region Label (From DB or Input)
-    let regionStd = 'Global';
-    if (result?.valueStd) regionStd = result.valueStd;
-    else if (votes.length > 0) {
-        const first = votes[0];
-        if (result?.filter === 'lv2') regionStd = first.region_std_lv2 || 'Global';
-        else if (result?.filter === 'lv1') regionStd = first.region_std_lv1 || 'Global';
-        else if (result?.filter === 'lv0') regionStd = first.region_std_lv0 || 'Global';
-    }
-
-    // Extract Localized Region Label (From DB or Input) - Priority for Display
-    let regionLabel = 'Global';
-    if (result?.value) regionLabel = result.value;
-    else if (votes.length > 0 && result?.filter && result.filter !== 'global') {
-        const first = votes[0];
-        if (result.filter === 'lv2') regionLabel = first.region_lv2 || first.region_std_lv2 || 'Global';
-        else if (result.filter === 'lv1') regionLabel = first.region_lv1 || first.region_std_lv1 || 'Global';
-        else if (result.filter === 'lv0') regionLabel = first.region_lv0 || first.region_std_lv0 || 'Global';
-    } else if (result?.valueStd) {
-        regionLabel = result.valueStd;
-    }
-
     const total = votes.length;
     const good = votes.filter(v => v.mood === 'good').length;
     const score = total === 0 ? 100 : Math.round((good / total) * 100);
@@ -140,10 +93,42 @@ export async function getDashboardStats(
     const femaleGood = femaleVotes.filter(v => v.mood === 'good').length;
     const femaleScore = femaleTotal === 0 ? 100 : Math.round((femaleGood / femaleTotal) * 100);
 
+    // Determine Labels
+    let regionLabel = '전세계'; // Default Global Label (Localized Fallback)
+    let regionStd = 'global'; // Lowercase 'global' for frontend check
+
+    if (result && result.filter !== 'global' && votes.length > 0) {
+        // Best case: We have votes, take labels from the first vote (Snapshot of reality)
+        const first = votes[0];
+        if (result.filter === 'lv2') {
+            regionLabel = first.region_lv2 || first.region_std_lv2 || 'Unknown';
+            regionStd = first.region_std_lv2 || 'Unknown';
+        } else if (result.filter === 'lv1') {
+            regionLabel = first.region_lv1 || first.region_std_lv1 || 'Unknown';
+            regionStd = first.region_std_lv1 || 'Unknown';
+        } else if (result.filter === 'lv0') {
+            regionLabel = first.region_lv0 || first.region_std_lv0 || 'Unknown';
+            regionStd = first.region_std_lv0 || 'Unknown';
+        }
+    } else if (result && result.filter !== 'global') {
+        // Fallback: No votes found, but we searched for a specific region context.
+        // Use the input context to form labels if possible.
+        if (result.filter === 'lv2') {
+            regionLabel = context.region_lv2 || context.region_std_lv2 || 'Unknown';
+            regionStd = context.region_std_lv2 || 'Unknown';
+        } else if (result.filter === 'lv1') {
+            regionLabel = context.region_lv1 || context.region_std_lv1 || 'Unknown';
+            regionStd = context.region_std_lv1 || 'Unknown';
+        } else if (result.filter === 'lv0') {
+            regionLabel = context.region_lv0 || context.region_std_lv0 || 'Unknown';
+            regionStd = context.region_std_lv0 || 'Unknown';
+        }
+    }
+
     return {
         score,
         total,
-        region: regionLabel || '전국', // "Global" might be better localized? '전국' is "Nationwide". '전세계' is World.
+        region: regionLabel,
         region_std: regionStd,
         male: { score: maleScore, total: maleTotal },
         female: { score: femaleScore, total: femaleTotal }

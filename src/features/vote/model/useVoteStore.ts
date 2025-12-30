@@ -63,13 +63,13 @@ export const useVoteStore = create<VoteState>((set, get) => ({
             region_lv0: nextState.region_lv0 || undefined,
             region_lv1: nextState.region_lv1 || undefined,
             region_lv2: nextState.region_lv2 || undefined,
-        }, '');
+        }, 'Unknown');
 
-        const region_std = getLocationScope({
+        const region_std = getLocationDisplayName({
             region_lv0: nextState.region_std_lv0 || undefined,
             region_lv1: nextState.region_std_lv1 || undefined,
             region_lv2: nextState.region_std_lv2 || undefined,
-        });
+        }, 'Global');
 
         return {
             ...nextState,

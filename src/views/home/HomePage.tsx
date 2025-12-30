@@ -142,13 +142,11 @@ export default function HomePage({ initialStep, savedGender, initialVote, initia
         };
     }, [initialStep, savedGender, initialVote, initialLv0, setStep, setGender, setMood, setRegion, setCoords, locale]);
 
-    // ... render ...
+
     const isReturningUser = !!savedGender;
 
     return (
-        // ...
         <div className="flex flex-col items-center justify-center min-h-[100dvh] p-4 bg-gradient-to-b from-slate-50 to-white overflow-hidden">
-            {/* ... */}
             <AnimatePresence mode="wait">
                 {step === 'gender' && (
                     <motion.div
