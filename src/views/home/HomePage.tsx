@@ -86,10 +86,20 @@ export default function HomePage({ initialStep, savedGender, initialVote, ipRegi
                         setCoords({ lat, lng });
 
                         if (!initialVote) {
-                            const { reverseGeocode } = await import('@/shared/lib/location/geocoding');
-                            const refinedRegion = await reverseGeocode(lat, lng, locale);
-                            if (refinedRegion && refinedRegion.localized) {
-                                setRegion(refinedRegion.localized, refinedRegion.std || undefined);
+                            const { detectLocationFromGPS } = await import('@/shared/lib/location/index');
+                            const location = await detectLocationFromGPS(lat, lng, locale);
+
+                            if (location) {
+                                const displayRegion = getLocationDisplayName({
+                                    region_lv0: location.region0,
+                                    region_lv1: location.region1,
+                                    region_lv2: location.region2
+                                }, location.region2 || 'Unknown');
+
+                                // Standard Region Logic: Priority Lv2 > Lv1 > Lv0
+                                const stdRegion = location.std?.region2 || location.std?.region1 || location.std?.region0;
+
+                                setRegion(displayRegion, stdRegion);
                             }
                         }
                     },

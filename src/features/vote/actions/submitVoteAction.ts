@@ -1,7 +1,12 @@
 'use server';
 
 import { createAdminClient } from '@/shared/lib/supabase/admin';
-import { cookies, headers } from 'next/headers';
+import { cookies } from 'next/headers';
+import { getLocale, getTranslations } from 'next-intl/server';
+import { detectLocationFromGPS, detectLocationFromHeaders } from '@/shared/lib/location';
+import { getDashboardStats } from '@/widgets/dashboard/actions/getDashboardStats';
+import { analyzeScenario } from '@/widgets/dashboard/lib/AnalysisEngine';
+import { broadcastVote } from '../api/broadcastVote';
 
 type VoteResult = {
     success: boolean;
@@ -32,15 +37,12 @@ export async function submitVoteAction(
     let region1En = 'Unknown';
     let region2En = 'Unknown';
 
-    let lat = coords?.lat;
-    let lng = coords?.lng;
+    const lat = coords?.lat;
+    const lng = coords?.lng;
     let timezone = 'Asia/Seoul'; // Default
 
     // Get Locale for robust/universal name resolution (e.g. "Seodaemun-gu" -> "서대문구" if ki)
-    const { getLocale } = await import('next-intl/server');
     const locale = await getLocale();
-
-    const { detectLocationFromGPS, detectLocationFromHeaders } = await import('@/shared/lib/location');
 
     // Strategy A: GPS / Nominatim (if coords provided)
     if (lat && lng) {
@@ -105,9 +107,6 @@ export async function submitVoteAction(
     // 1.5. Generate Persistent Analysis (Server-Side)
     let analysis_text: string | null = null;
     try {
-        const { getDashboardStats } = await import('@/widgets/dashboard/actions/getDashboardStats');
-        const { analyzeScenario } = await import('@/widgets/dashboard/lib/AnalysisEngine');
-        const { getTranslations } = await import('next-intl/server');
         const t = await getTranslations({ locale });
 
         // Fetch CURRENT stats: Region Fallback (Region -> Country -> World)
@@ -135,7 +134,7 @@ export async function submitVoteAction(
         } else {
             const oldTotal = nextStats.female.total;
             const oldGood = Math.round(nextStats.female.score * oldTotal / 100);
-            nextStats.male.total += 1;
+            nextStats.female.total += 1;
             nextStats.female.score = Math.round(((oldGood + (isGood ? 1 : 0)) / nextStats.female.total) * 100);
         }
 
@@ -193,9 +192,7 @@ export async function submitVoteAction(
     });
 
     // 4. Broadcast Realtime Updates (Optimization: Don't await if we want faster response, but better to ensure it's sent)
-    // We import dynamically or standard. Let's assume standard import.
     try {
-        const { broadcastVote } = await import('../api/broadcastVote');
         // Fire and forget-ish, or await. Awaiting adds latency to the user's "Vote" action.
         // But Server Actions must succeed. Let's await to be safe for now, can optimize later.
 
